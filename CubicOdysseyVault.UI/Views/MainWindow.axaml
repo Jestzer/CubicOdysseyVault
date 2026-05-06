@@ -1,0 +1,54 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CubicOdysseyVault.UI.ViewModels"
+        x:Class="CubicOdysseyVault.UI.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="Cubic Odyssey Vault"
+        Width="1200" Height="700"
+        MinWidth="900" MinHeight="600"
+        Background="{StaticResource MainBackgroundBrush}">
+
+    <DockPanel>
+        <!-- Status bar -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{StaticResource SidebarBackgroundBrush}"
+                BorderBrush="{StaticResource SeparatorBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="10,4">
+            <TextBlock Text="{Binding StatusMessage}"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       FontSize="12" />
+        </Border>
+
+        <!-- Sidebar placeholder -->
+        <Border DockPanel.Dock="Left"
+                Width="220"
+                Background="{StaticResource SidebarBackgroundBrush}"
+                BorderBrush="{StaticResource SeparatorBrush}"
+                BorderThickness="0,0,1,0"
+                Padding="12">
+            <StackPanel Spacing="8">
+                <TextBlock Text="Steam users"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="10" FontWeight="SemiBold" />
+                <TextBlock Text="(none discovered)"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           FontSize="13" />
+            </StackPanel>
+        </Border>
+
+        <!-- Content placeholder -->
+        <Grid Margin="24">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
+                <TextBlock Text="Cubic Odyssey Vault"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           FontSize="22" FontWeight="SemiBold"
+                           HorizontalAlignment="Center" />
+                <TextBlock Text="Skeleton phase. Save discovery and snapshots arrive next."
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="13"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+    </DockPanel>
+</Window>
