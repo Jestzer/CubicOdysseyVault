@@ -1,0 +1,172 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CubicOdysseyVault.UI.ViewModels"
+        x:Class="CubicOdysseyVault.UI.Views.OnboardingDialog"
+        x:DataType="vm:OnboardingViewModel"
+        Title="Welcome to Cubic Odyssey Vault"
+        Width="640" Height="620"
+        MinWidth="600" MinHeight="560"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource MainBackgroundBrush}">
+
+    <DockPanel Margin="24">
+        <!-- Buttons (bottom) -->
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,16,0,0">
+            <StackPanel DockPanel.Dock="Right"
+                        Orientation="Horizontal"
+                        Spacing="8">
+                <Button Content="Cancel"
+                        MinWidth="90"
+                        Command="{Binding CancelCommand}" />
+                <Button Content="Back"
+                        MinWidth="90"
+                        Command="{Binding BackCommand}"
+                        IsVisible="{Binding IsStep2}" />
+                <Button Content="Next"
+                        MinWidth="90"
+                        Command="{Binding NextCommand}"
+                        IsVisible="{Binding IsStep1}" />
+                <Button Content="Get started"
+                        MinWidth="120"
+                        Command="{Binding FinishCommand}"
+                        IsVisible="{Binding IsStep2}" />
+            </StackPanel>
+            <TextBlock VerticalAlignment="Center"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       FontSize="11">
+                <Run Text="Step "/>
+                <Run Text="{Binding CurrentStep}"/>
+                <Run Text=" of 2"/>
+            </TextBlock>
+        </DockPanel>
+
+        <!-- Step 1: Welcome + detected sources -->
+        <StackPanel IsVisible="{Binding IsStep1}" Spacing="16">
+            <TextBlock Text="Welcome to Cubic Odyssey Vault"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       FontSize="22" FontWeight="SemiBold" />
+
+            <StackPanel Spacing="10">
+                <TextBlock Foreground="{StaticResource TextPrimaryBrush}"
+                           FontSize="13"
+                           TextWrapping="Wrap">
+                    Cubic Odyssey writes saves in place. A crash, a botched Quit, or a Cloud sync
+                    glitch can zero them out — and the game keeps only ~20 slots before older
+                    saves get overwritten.
+                </TextBlock>
+                <TextBlock Foreground="{StaticResource TextPrimaryBrush}"
+                           FontSize="13"
+                           TextWrapping="Wrap">
+                    This tool snapshots your saves on demand or automatically, keeps a history
+                    you can browse, and lets you restore any point cleanly. Manual and tagged
+                    snapshots are kept forever; auto snapshots are pruned by tier.
+                </TextBlock>
+            </StackPanel>
+
+            <Border Background="{StaticResource SidebarBlockBrush}"
+                    BorderBrush="{StaticResource SeparatorBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="16">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="What we found on this machine"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="11" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding DetectedSummary}"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               FontSize="13"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                       FontSize="11"
+                       TextWrapping="Wrap">
+                Click Next to choose a backup folder and tune defaults. You can always change
+                these later from the Settings button in the toolbar.
+            </TextBlock>
+        </StackPanel>
+
+        <!-- Step 2: Configuration form -->
+        <ScrollViewer IsVisible="{Binding IsStep2}" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="16" DataContext="{Binding SettingsForm}" x:DataType="vm:SettingsViewModel">
+                <TextBlock Text="Configure your vault"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           FontSize="20" FontWeight="SemiBold" />
+
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Backup root"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="11" FontWeight="SemiBold" />
+                    <TextBlock Text="Snapshots are written here. We've suggested a folder under your local app data."
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="11"
+                               TextWrapping="Wrap" />
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right"
+                                Content="Browse..."
+                                MinWidth="90"
+                                Margin="8,0,0,0"
+                                Command="{Binding BrowseBackupRootCommand}" />
+                        <TextBox Text="{Binding BackupRootPath}" />
+                    </DockPanel>
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Automatic backups"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="11" FontWeight="SemiBold" />
+                    <CheckBox Content="Watch save folders and snapshot on change"
+                              IsChecked="{Binding WatcherEnabled}"
+                              Foreground="{StaticResource TextPrimaryBrush}" />
+                    <DockPanel IsEnabled="{Binding WatcherEnabled}">
+                        <TextBlock DockPanel.Dock="Left"
+                                   Text="Debounce window (seconds):"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center" />
+                        <NumericUpDown Value="{Binding WatcherDebounceSeconds}"
+                                       Minimum="1" Maximum="300"
+                                       FormatString="0"
+                                       Width="120"
+                                       Margin="12,0,0,0"
+                                       HorizontalAlignment="Left" />
+                    </DockPanel>
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Retention"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="11" FontWeight="SemiBold" />
+                    <TextBlock Text="Auto snapshots are pruned to these counts per tier. Manual + tagged snapshots are kept forever."
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="11"
+                               TextWrapping="Wrap" />
+                    <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,8,Auto,8,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Hourly:"
+                                   Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                        <NumericUpDown Grid.Row="0" Grid.Column="1"
+                                       Value="{Binding HourlySnapshotsKept}"
+                                       Minimum="0" Maximum="999"
+                                       FormatString="0"
+                                       Width="120" HorizontalAlignment="Left" />
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Daily:"
+                                   Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                        <NumericUpDown Grid.Row="2" Grid.Column="1"
+                                       Value="{Binding DailySnapshotsKept}"
+                                       Minimum="0" Maximum="999"
+                                       FormatString="0"
+                                       Width="120" HorizontalAlignment="Left" />
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Weekly:"
+                                   Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                        <NumericUpDown Grid.Row="4" Grid.Column="1"
+                                       Value="{Binding WeeklySnapshotsKept}"
+                                       Minimum="0" Maximum="999"
+                                       FormatString="0"
+                                       Width="120" HorizontalAlignment="Left" />
+                    </Grid>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

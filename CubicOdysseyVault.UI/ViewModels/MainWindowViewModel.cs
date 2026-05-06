@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CubicOdysseyVault.Core.Saves;
 using CubicOdysseyVault.Core.Steam;
+using CubicOdysseyVault.UI.Services;
 
 namespace CubicOdysseyVault.UI.ViewModels;
 
@@ -17,6 +18,18 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private bool _hasDiscovered;
     [ObservableProperty] private bool _showEmptyState;
 
+    private AppSettings _settings;
+    private bool _skipOnboardingThisSession;
+
+    public Func<AppSettings, Task<AppSettings?>>? ShowSettingsDialog { get; set; }
+    public Func<AppSettings, int, int, int, Task<AppSettings?>>? ShowOnboardingDialog { get; set; }
+    public Action<string>? OpenBackupFolderRequested { get; set; }
+
+    public MainWindowViewModel()
+    {
+        _settings = AppSettingsService.Load();
+    }
+
     [RelayCommand]
     private async Task RefreshDiscoveryAsync()
     {
@@ -27,7 +40,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
         try
         {
-            var result = await Task.Run(DiscoverSync);
+            var manualRoots = _settings.ManualSourceRoots.ToList();
+            var result = await Task.Run(() => DiscoverSync(manualRoots));
 
             SteamUsers.Clear();
             DiscoveredSources.Clear();
@@ -38,6 +52,9 @@ public partial class MainWindowViewModel : ViewModelBase
             HasDiscovered = true;
             UpdateShowEmptyState();
             StatusMessage = result.Summary;
+
+            if (!_settings.HasCompletedOnboarding && !_skipOnboardingThisSession)
+                await TryShowOnboarding(result.Users.Count, result.TotalSlots, result.ActiveSources);
         }
         catch (Exception ex)
         {
@@ -51,15 +68,58 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
+    [RelayCommand]
+    private async Task OpenSettings()
+    {
+        if (ShowSettingsDialog == null) return;
+        var updated = await ShowSettingsDialog(_settings);
+        if (updated != null)
+        {
+            _settings = updated;
+            AppSettingsService.Save(_settings);
+            StatusMessage = "Settings saved. Re-scanning...";
+            await RefreshDiscoveryAsync();
+        }
+    }
+
+    [RelayCommand]
+    private void OpenBackupFolder()
+    {
+        var path = string.IsNullOrEmpty(_settings.BackupRootPath)
+            ? AppSettingsService.GetSuggestedBackupRoot()
+            : _settings.BackupRootPath;
+
+        try { Directory.CreateDirectory(path); } catch { /* if we can't create, opener may still find a parent */ }
+
+        OpenBackupFolderRequested?.Invoke(path);
+    }
+
     partial void OnHasDiscoveredChanged(bool value) => UpdateShowEmptyState();
 
     private void UpdateShowEmptyState() =>
         ShowEmptyState = HasDiscovered && SteamUsers.Count == 0;
 
-    private static DiscoveryResult DiscoverSync()
+    private async Task TryShowOnboarding(int users, int slots, int sources)
+    {
+        if (ShowOnboardingDialog == null) return;
+        var updated = await ShowOnboardingDialog(_settings, users, slots, sources);
+        if (updated != null)
+        {
+            _settings = updated;
+            AppSettingsService.Save(_settings);
+            StatusMessage = "Vault configured. Re-scanning with your settings...";
+            await RefreshDiscoveryAsync();
+        }
+        else
+        {
+            _skipOnboardingThisSession = true;
+        }
+    }
+
+    private static DiscoveryResult DiscoverSync(IEnumerable<string> manualRoots)
     {
         var roots = SteamLocator.Locate();
-        var sources = SaveLocator.LocateSources(roots);
+        var sources = SaveLocator.LocateSources(roots, manualRoots);
         var byId = new Dictionary<string, SteamUserViewModel>();
 
         int totalSlots = 0;
@@ -89,7 +149,7 @@ public partial class MainWindowViewModel : ViewModelBase
               $"{totalSlots} slot{Plural(totalSlots)} across " +
               $"{activeSources} source{Plural(activeSources)}.";
 
-        return new DiscoveryResult(users, sourceVms, summary);
+        return new DiscoveryResult(users, sourceVms, summary, totalSlots, activeSources);
     }
 
     private static SteamUserViewModel GetOrAdd(Dictionary<string, SteamUserViewModel> dict, string id)
@@ -107,5 +167,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private sealed record DiscoveryResult(
         List<SteamUserViewModel> Users,
         List<SaveSourceViewModel> Sources,
-        string Summary);
+        string Summary,
+        int TotalSlots,
+        int ActiveSources);
 }

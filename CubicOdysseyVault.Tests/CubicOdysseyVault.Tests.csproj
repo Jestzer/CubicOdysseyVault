@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CubicOdysseyVault.Core\CubicOdysseyVault.Core.csproj" />
+    <ProjectReference Include="..\CubicOdysseyVault.UI\CubicOdysseyVault.UI.csproj" />
   </ItemGroup>
 
 </Project>

@@ -9,7 +9,33 @@
         Background="{StaticResource MainBackgroundBrush}">
 
     <DockPanel>
-        <!-- Status bar -->
+        <!-- Toolbar (top) -->
+        <Border DockPanel.Dock="Top"
+                Background="{StaticResource SidebarBackgroundBrush}"
+                BorderBrush="{StaticResource SeparatorBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="12,8">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Refresh"
+                        Command="{Binding RefreshDiscoveryCommand}"
+                        IsEnabled="{Binding !IsDiscovering}"
+                        MinWidth="90" />
+                <Button Content="Settings"
+                        Command="{Binding OpenSettingsCommand}"
+                        MinWidth="90" />
+                <Button Content="Open backup folder"
+                        Command="{Binding OpenBackupFolderCommand}"
+                        MinWidth="150" />
+                <TextBlock Text="Scanning..."
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="11"
+                           VerticalAlignment="Center"
+                           Margin="12,0,0,0"
+                           IsVisible="{Binding IsDiscovering}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Status bar (bottom) -->
         <Border DockPanel.Dock="Bottom"
                 Background="{StaticResource SidebarBackgroundBrush}"
                 BorderBrush="{StaticResource SeparatorBrush}"
@@ -34,24 +60,11 @@
                            FontSize="10" FontWeight="SemiBold"
                            Margin="0,0,0,8" />
 
-                <Button DockPanel.Dock="Top"
-                        Content="Refresh"
-                        HorizontalAlignment="Stretch"
-                        Command="{Binding RefreshDiscoveryCommand}"
-                        IsEnabled="{Binding !IsDiscovering}"
-                        Margin="0,0,0,12" />
-
-                <TextBlock DockPanel.Dock="Top"
-                           Text="Scanning..."
-                           Foreground="{StaticResource TextSecondaryBrush}"
-                           FontSize="11"
-                           Margin="0,0,0,8"
-                           IsVisible="{Binding IsDiscovering}" />
-
                 <TextBlock DockPanel.Dock="Top"
                            Text="(none discovered)"
                            Foreground="{StaticResource TextSecondaryBrush}"
                            FontSize="11"
+                           Margin="0,0,0,8"
                            IsVisible="{Binding ShowEmptyState}" />
 
                 <ListBox ItemsSource="{Binding SteamUsers}"

@@ -1,114 +1,108 @@
-# Handoff — pick up from Phase 2
+# Handoff — pick up from Phase 3
 
-> Updated 2026-05-06 at the end of the discovery phase, after the user
-> switched to a Linux account with real Cubic Odyssey saves and grounded
-> the implementation in actual data. Read this first when resuming work.
+> Updated 2026-05-06 at the end of the onboarding/settings phase.
+> Read this first when resuming work.
 
 ## Where we are
 
-**Phases 1 (Skeleton) and 2 (Discovery) are done.** The solution builds
-clean (`dotnet build CubicOdysseyVault.sln` → 0 warnings, 0 errors),
-`dotnet test` passes 25 tests, and `dotnet run --project
-CubicOdysseyVault.Desktop` opens the dark window, auto-scans on first
-attach, and lists discovered Steam users + slot cards.
+**Phases 1 (Skeleton), 2 (Discovery), and 3 (Onboarding + settings) are
+done.** The solution builds clean
+(`dotnet build CubicOdysseyVault.sln` → 0 warnings, 0 errors),
+`dotnet test` passes 30 tests, and `dotnet run --project
+CubicOdysseyVault.Desktop` opens the dark window with a top toolbar
+(Refresh / Settings / Open backup folder), runs auto-discovery, and on
+first launch shows a 2-step onboarding wizard.
 
-What Phase 2 added:
+What Phase 3 added:
 
-- **Core models** (`CubicOdysseyVault.Core`):
-  - `Steam/SteamRoot.cs`, `Steam/SteamLocator.cs` — cross-platform Steam
-    install discovery; resolves intermediate symlinks via segment-walk
-    (multi-iteration; .NET's `ResolveLinkTarget` only handles leaf links).
-  - `Steam/LibraryFoldersVdfParser.cs` — hand-rolled tokenizer for Valve
-    KeyValues format, no NuGet dependency.
-  - `Saves/SaveSource.cs`, `Saves/SaveAccount.cs`, `Saves/SaveSlot.cs`,
-    `Saves/SaveLayout.cs` — flat records, no Avalonia refs.
-  - `Saves/SaveLocator.cs` — produces `ProtonCompatdata` /
-    `SteamCloudRemote` / `Documents` (Win stub) / `Manual` sources;
-    dedupes by canonical `RootPath`.
-  - `Saves/SaveSlotEnumerator.cs` — walks `<RootPath>/<SteamID32>/<acct>/<slot>/`,
-    surfaces both `SaveAccount` (account-level shared files) and
-    `SaveSlot` (per-slot atomic units).
-- **UI ViewModels** (`CubicOdysseyVault.UI/ViewModels`):
-  `SteamUserViewModel`, `SaveAccountViewModel`, `SaveSlotViewModel`,
-  `SaveSourceViewModel`, plus `MainWindowViewModel` extended with
-  `RefreshDiscoveryCommand` and `ShowEmptyState`.
-- **MainWindow.axaml** — sidebar `ListBox` of users, content
-  `ItemsControl` for the account-level card + `WrapPanel` of slot cards.
-- **MainWindow.axaml.cs** — auto-fires `RefreshDiscoveryCommand` once on
-  first `DataContextChanged` per user decision (auto-scan-on-launch).
-- **Tests** — `LibraryFoldersVdfParserTests` (11), `SaveSlotEnumeratorTests`
-  (8), `SaveLocatorTests` (5), plus the original `ConstantsTests`.
+- **`CubicOdysseyVault.UI/Services/AppSettingsService.cs`** — JSON
+  load/save under `ApplicationData/CubicOdysseyVault/settings.json`
+  with silent failure on errors (mirrors OpenFATX's
+  `WindowSettingsService` pattern). Includes `LoadFromFile` / `SaveToFile`
+  overloads so tests can use temp paths. `GetSuggestedBackupRoot()`
+  returns `LocalApplicationData/CubicOdysseyVault/snapshots`.
+- **`AppSettings`** record (same file): `BackupRootPath`,
+  `ManualSourceRoots`, `WatcherEnabled`, retention numbers
+  (24/14/8 by default), `WatcherDebounceSeconds` (10), and
+  `HasCompletedOnboarding` flag.
+- **`SettingsViewModel` + `Views/SettingsDialog.axaml(.cs)`** — modal
+  settings dialog with Browse... folder picker, manual-source list
+  with Add/Remove, watcher toggle, and three retention `NumericUpDown`s.
+  Save/Cancel via VM commands; dialog closes via `CloseRequested` Action
+  callback wired in `DataContextChanged`.
+- **`OnboardingViewModel` + `Views/OnboardingDialog.axaml(.cs)`** —
+  2-step wizard. Step 1: welcome + detected-sources summary
+  (auto-generated from discovery counts). Step 2: backup-root +
+  watcher + retention form (composes `SettingsViewModel` to share
+  fields). Pre-fills suggested backup root if empty.
+- **`MainWindowViewModel`** — loads `AppSettings` in the ctor; passes
+  `ManualSourceRoots` to `SaveLocator.LocateSources`; exposes
+  `OpenSettings` and `OpenBackupFolder` `[RelayCommand]`s; auto-fires
+  the onboarding wizard after first discovery if
+  `!HasCompletedOnboarding` (one-shot per session — `_skipOnboardingThisSession`
+  flag prevents re-prompting if the user dismisses the wizard).
+- **`MainWindow.axaml`** — added top toolbar with [Refresh] [Settings]
+  [Open backup folder] buttons. Refresh moved out of the sidebar.
+- **`MainWindow.axaml.cs`** — wires `ShowSettingsDialog`,
+  `ShowOnboardingDialog`, and `OpenBackupFolderRequested` callbacks in
+  `DataContextChanged` (Func/Action pattern matching
+  `OpenFATX/Views/MainWindow.axaml.cs`). Cross-platform file-manager
+  open via `xdg-open` / `open` / `explorer.exe`.
+- **Tests** — `AppSettingsServiceTests` (5: defaults, round-trip,
+  corrupt JSON, dir creation, suggested path). Tests project now
+  references the UI project, since the service lives there per
+  PLAN.md (matches OpenFATX layout).
 
-## Important discoveries from real data
+## What's next: Phase 4 (Manual snapshot + integrity check + snapshot store)
 
-1. **Account-level shared files** at `<DocumentsRoot>/Cubic Odyssey/save/<SteamID32>/`:
-   `meta.sav`, `93_blueprints.sav`, `93_servers.sav`, `93_stats.sav` —
-   total 186 B on this user's machine. The original PLAN.md treated
-   slots as the only atomic unit; reality has this account-level layer
-   above slots. `SaveAccount` models it; Phase 4 must snapshot these
-   independently of slots.
-2. **Single inner account folder `0/`** — no `1/`. Plan must enumerate
-   dynamically (already does).
-3. **TGA header byte 2 = 0x02** (uncompressed RGB) — Phase 5's TGA
-   decoder can start with the uncompressed-only path; RLE only if a
-   different save surfaces it.
-4. **Steam Cloud `remote/` doesn't exist on this machine yet**, only
-   `remotecache.vdf`. `SaveLocator` records the cloud source as
-   `Exists=false` so the watcher (Phase 6) can pick it up the moment
-   the directory appears.
-5. **Multiple Steam libraries on this machine symlink compatdata to
-   one underlying Proton prefix.** Without canonical-path dedup, the
-   UI would show 4× duplicate slot cards. `SaveLocator.DedupByCanonicalPath`
-   handles it; `SteamLocator.Canonicalize` resolves intermediate symlinks
-   by walking path segments (the .NET stdlib `ResolveLinkTarget` only
-   resolves leaf links, which is insufficient here).
+Per `docs/PLAN.md` "Suggested implementation order" item 4:
 
-## What's next: Phase 3 (Onboarding + settings persistence)
+1. **`Integrity/IntegrityChecker.cs`** + **`Integrity/SlotHealth.cs`**
+   (Healthy / Suspicious / Corrupted) — confirms slot folder exists,
+   every file is non-zero, `screenshot.tga` parses as a valid TGA
+   header, computes SHA-256 of each file plus a combined slot hash.
+2. **`Snapshots/Snapshot.cs`** record — id, captured-at, trigger
+   (Auto / Manual / PreRestore), tag, slot/file hashes, total bytes,
+   health, source kind.
+3. **`Snapshots/SnapshotStore.cs`** — filesystem-backed; copies slot
+   folder to
+   `<backupRoot>/snapshots/<SteamID32>/<account>/<slot>/<UTC-ISO8601>__<short-hash>/`
+   via `*.tmp`-then-rename for crash safety.
+4. **`Snapshots/SnapshotIndex.cs`** — JSON `manifest.json` per slot,
+   atomically rewritten.
+5. **`Snapshots/BackupService.cs`** — orchestrates Inspect →
+   skip-if-unchanged → copy → manifest update.
+6. **Account-level snapshot pipeline** — parallel to slot snapshots;
+   `SaveAccount`'s files (meta.sav, blueprints, servers, stats) on an
+   independent lifecycle. Don't bundle into slot snapshots.
+7. **UI**: per-slot "Back up now" button (RelayCommand on
+   `SaveSlotViewModel`); snapshot history panel in detail view; live
+   progress + status updates.
 
-Per `docs/PLAN.md`:
+Phase 4 will use the settings already wired in Phase 3:
+`_settings.BackupRootPath` (snapshot store root) and
+`_settings.HourlySnapshotsKept` etc. (Phase 6 retention pruning).
 
-1. **First-run onboarding wizard**: welcome screen, detected sources
-   summary, pick backup root (default
-   `LocalApplicationData/CubicOdysseyVault/snapshots`), enable file
-   watcher (default Yes), retention defaults.
-2. **`AppSettingsService`** — JSON persistence under
-   `Environment.SpecialFolder.ApplicationData / "CubicOdysseyVault" /
-   "settings.json"`. Mirror
-   `/run/media/james/SSD/My_Programs_SSD/OpenFATX/OpenFATX.UI/Services/WindowSettingsService.cs`
-   pattern (silent failure, try/catch).
-3. **Settings dialog** — accessible from a toolbar button; lets the user
-   change backup root, manual-source overrides, retention numbers,
-   watcher on/off.
-4. Wire `SaveLocator.LocateSources(roots, manualSourceRoots)` to read
-   manual overrides from settings on each refresh.
-5. (Polish, optional in Phase 3) Resolve Steam display names from
-   `<root>/userdata/<SteamID32>/config/localconfig.vdf`. Sidebar
-   currently shows raw `SteamID32`.
+## Phase 3 design notes worth remembering
 
-## What was explicitly decided this session
-
-| Question | Choice |
-|---|---|
-| Scan trigger | **Auto-scan on launch** via DataContextChanged first-time fire; manual Refresh button stays for re-scans |
-| Account-level UI | **Single card above the slot grid** showing file count + size + source |
-| Account-level data model | New `SaveAccount` record, parallel to `SaveSlot`, scoped to SteamID32 only (the inner `0`/`1` folders are part of `SaveSlot` identity) |
-
-## Open assumptions to validate when data lands
-
-- **Steam Cloud `remote/` layout**: inferred from `remotecache.vdf` paths
-  to be `<userdata>/<id>/<app>/remote/Cubic Odyssey/save/<SteamID32>/...`
-  (mirrors compatdata one level deeper). Validate the first time Cloud
-  sync materializes files. If the layout differs, adjust
-  `SaveLocator.AddSteamCloudRemoteSources`.
-- **Two-account-folder semantics (`0` vs `1`)**: still unknown. Only `0/`
-  exists on this account. The plan correctly enumerates dynamically.
-- **TGA RLE variant**: not yet observed. Phase 5's decoder starts with
-  uncompressed-only; if a future save uses RLE (image_type byte = 0x0A),
-  the decoder needs an RLE branch.
-- **Slot file naming variants**: `93_<8-hex>.{sav,vw3}`, `93_<name>.sav`,
-  `ship_<n>.vx`, `screenshot.tga` confirmed. Don't filter by name — the
-  enumerator + future snapshot pipeline must capture every file in the
-  slot folder verbatim.
+- **`SettingsViewModel.ApplyTo(existing)`** preserves
+  `HasCompletedOnboarding` and `SchemaVersion` from the existing
+  settings rather than overwriting them. The settings dialog isn't
+  meant to retoggle the onboarding flag.
+- **`OnboardingViewModel.ApplyTo(existing)`** sets
+  `HasCompletedOnboarding = true`, signalling the wizard won't
+  re-trigger on subsequent launches.
+- **`_skipOnboardingThisSession`** — set when the wizard returns null
+  (Cancel / window-X / Func not wired). Without this flag, RefreshDiscovery
+  could re-prompt indefinitely if the user dismisses without
+  completing.
+- **Manual sources flow through `SaveLocator.LocateSources(roots,
+  manualRoots)`** — Phase 2 already accepted the parameter; Phase 3
+  just feeds it from settings.
+- **`OpenBackupFolder`** auto-creates the directory if missing
+  (`Directory.CreateDirectory`) before invoking the OS file manager —
+  prevents "file manager opens an empty error" on first use before
+  Phase 4 has populated it.
 
 ## Style template — non-negotiable (unchanged)
 
@@ -118,7 +112,7 @@ All Avalonia code in this project must mirror the patterns in
 - .NET 8, Avalonia 11.2.3, CommunityToolkit.Mvvm 8.4.0, xUnit 2.4.2
 - `[ObservableProperty]` for VM state, `[RelayCommand]` for commands
 - ViewModel exposes `Func<...>?` callbacks for dialogs; View wires them
-  in `DataContextChanged` (see `OpenFATX.UI/Views/MainWindow.axaml.cs`)
+  in `DataContextChanged`
 - Dark theme + red accent palette (already copied)
 - Settings persisted as JSON under `Environment.SpecialFolder.ApplicationData / "CubicOdysseyVault"`
 - Compiled bindings (`AvaloniaUseCompiledBindingsByDefault=true`)
@@ -128,16 +122,30 @@ All Avalonia code in this project must mirror the patterns in
 
 ```
 PLAN.md                                            full design spec (this dir)
-HANDOFF.md                                          this file
+HANDOFF.md                                         this file
 ../Directory.Build.props                            net8.0 + Avalonia 11.2.3
 ../CubicOdysseyVault.Core/Constants.cs              AppId + path constants + candidate-roots tables
 ../CubicOdysseyVault.Core/Steam/                    SteamRoot, SteamLocator, LibraryFoldersVdfParser
 ../CubicOdysseyVault.Core/Saves/                    SaveSource, SaveAccount, SaveSlot, SaveLayout, SaveLocator, SaveSlotEnumerator
-../CubicOdysseyVault.UI/App.axaml                   FluentTheme + DarkTheme include
+../CubicOdysseyVault.UI/Services/AppSettingsService.cs  JSON persistence + AppSettings record
 ../CubicOdysseyVault.UI/Themes/DarkTheme.axaml      palette
-../CubicOdysseyVault.UI/ViewModels/                 MainWindow / SteamUser / SaveAccount / SaveSlot / SaveSource VMs
-../CubicOdysseyVault.UI/Views/MainWindow.axaml      sidebar + account card + slot WrapPanel
-../CubicOdysseyVault.UI/Views/MainWindow.axaml.cs   auto-fire discovery on first attach
+../CubicOdysseyVault.UI/ViewModels/                 MainWindow / SteamUser / SaveAccount / SaveSlot / SaveSource / Settings / Onboarding VMs
+../CubicOdysseyVault.UI/Views/MainWindow.axaml      toolbar + sidebar + slot WrapPanel
+../CubicOdysseyVault.UI/Views/SettingsDialog.axaml  modal config dialog
+../CubicOdysseyVault.UI/Views/OnboardingDialog.axaml first-run wizard
 ../CubicOdysseyVault.Desktop/Program.cs             entry point
-../CubicOdysseyVault.Tests/                         25 tests, all passing
+../CubicOdysseyVault.Tests/                         30 tests, all passing
 ```
+
+## Open assumptions still unvalidated
+
+- **Steam Cloud `remote/` layout**: still inferred from
+  `remotecache.vdf`. Validate when Cloud sync first materializes the
+  `remote/` directory on this machine.
+- **Two-account-folder semantics (`0` vs `1`)**: only `0/` exists on
+  this account. Plan enumerates dynamically.
+- **TGA RLE variant**: only uncompressed RGB observed. Phase 5's TGA
+  decoder starts uncompressed-only; if a save with image_type 0x0A
+  surfaces, add the RLE branch.
+- **Slot file naming variants**: snapshot pipeline must capture every
+  file in a slot folder verbatim — never filter by name.
