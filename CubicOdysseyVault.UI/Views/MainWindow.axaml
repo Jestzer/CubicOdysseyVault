@@ -20,35 +20,141 @@
                        FontSize="12" />
         </Border>
 
-        <!-- Sidebar placeholder -->
+        <!-- Sidebar -->
         <Border DockPanel.Dock="Left"
-                Width="220"
+                Width="240"
                 Background="{StaticResource SidebarBackgroundBrush}"
                 BorderBrush="{StaticResource SeparatorBrush}"
                 BorderThickness="0,0,1,0"
                 Padding="12">
-            <StackPanel Spacing="8">
-                <TextBlock Text="Steam users"
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top"
+                           Text="Steam users"
                            Foreground="{StaticResource TextSecondaryBrush}"
-                           FontSize="10" FontWeight="SemiBold" />
-                <TextBlock Text="(none discovered)"
-                           Foreground="{StaticResource TextPrimaryBrush}"
-                           FontSize="13" />
-            </StackPanel>
+                           FontSize="10" FontWeight="SemiBold"
+                           Margin="0,0,0,8" />
+
+                <Button DockPanel.Dock="Top"
+                        Content="Refresh"
+                        HorizontalAlignment="Stretch"
+                        Command="{Binding RefreshDiscoveryCommand}"
+                        IsEnabled="{Binding !IsDiscovering}"
+                        Margin="0,0,0,12" />
+
+                <TextBlock DockPanel.Dock="Top"
+                           Text="Scanning..."
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="11"
+                           Margin="0,0,0,8"
+                           IsVisible="{Binding IsDiscovering}" />
+
+                <TextBlock DockPanel.Dock="Top"
+                           Text="(none discovered)"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="11"
+                           IsVisible="{Binding ShowEmptyState}" />
+
+                <ListBox ItemsSource="{Binding SteamUsers}"
+                         SelectedItem="{Binding SelectedSteamUser}"
+                         Background="Transparent"
+                         BorderThickness="0">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SteamUserViewModel">
+                            <StackPanel Spacing="2" Margin="0,4">
+                                <TextBlock Text="{Binding SteamId32}"
+                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                           FontWeight="SemiBold" />
+                                <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                                           FontSize="11">
+                                    <Run Text="{Binding SlotCount}" />
+                                    <Run Text=" slots" />
+                                </TextBlock>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
         </Border>
 
-        <!-- Content placeholder -->
-        <Grid Margin="24">
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
-                <TextBlock Text="Cubic Odyssey Vault"
-                           Foreground="{StaticResource TextPrimaryBrush}"
-                           FontSize="22" FontWeight="SemiBold"
-                           HorizontalAlignment="Center" />
-                <TextBlock Text="Skeleton phase. Save discovery and snapshots arrive next."
-                           Foreground="{StaticResource TextSecondaryBrush}"
-                           FontSize="13"
-                           HorizontalAlignment="Center" />
-            </StackPanel>
+        <!-- Content -->
+        <Grid Margin="20">
+            <DockPanel>
+                <ItemsControl DockPanel.Dock="Top"
+                              ItemsSource="{Binding SelectedSteamUser.Accounts}"
+                              Margin="0,0,0,16">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SaveAccountViewModel">
+                            <Border Background="{StaticResource SidebarBlockBrush}"
+                                    BorderBrush="{StaticResource SeparatorBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="14"
+                                    Margin="0,0,0,4">
+                                <StackPanel Spacing="3">
+                                    <TextBlock Text="Account-level data"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               FontSize="10" FontWeight="SemiBold" />
+                                    <TextBlock Foreground="{StaticResource TextPrimaryBrush}"
+                                               FontSize="13">
+                                        <Run Text="{Binding FileCount}" />
+                                        <Run Text=" files · " />
+                                        <Run Text="{Binding FormattedSize}" />
+                                        <Run Text=" · " />
+                                        <Run Text="{Binding SourceLabel}" />
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding LastWriteText}"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               FontSize="11" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding SelectedSteamUser.Slots}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SaveSlotViewModel">
+                                <Border Width="220" Height="170"
+                                        Margin="0,0,12,12"
+                                        Padding="12"
+                                        Background="{StaticResource SidebarBlockBrush}"
+                                        BorderBrush="{StaticResource SeparatorBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6">
+                                    <StackPanel Spacing="4">
+                                        <Rectangle Height="80"
+                                                   Fill="{StaticResource SidebarBackgroundBrush}"
+                                                   RadiusX="3" RadiusY="3" />
+                                        <TextBlock Foreground="{StaticResource TextPrimaryBrush}"
+                                                   FontWeight="SemiBold">
+                                            <Run Text="Slot " />
+                                            <Run Text="{Binding SlotName}" />
+                                            <Run Text=" / acct " />
+                                            <Run Text="{Binding AccountFolderName}" />
+                                        </TextBlock>
+                                        <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                                                   FontSize="11">
+                                            <Run Text="{Binding FileCount}" />
+                                            <Run Text=" files · " />
+                                            <Run Text="{Binding FormattedSize}" />
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding LastWriteText}"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   FontSize="10" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
         </Grid>
     </DockPanel>
 </Window>
