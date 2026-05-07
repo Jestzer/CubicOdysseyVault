@@ -62,21 +62,78 @@
         <Border DockPanel.Dock="Left"
                 Width="240"
                 Background="{StaticResource SidebarBackgroundBrush}"
-                BorderBrush="{StaticResource SeparatorBrush}"
+                BorderBrush="{StaticResource BorderSubtleBrush}"
                 BorderThickness="0,0,1,0"
-                Padding="12">
+                Padding="{StaticResource PadLg}">
             <DockPanel>
+
+                <!-- Watcher + Storage at the bottom -->
+                <StackPanel DockPanel.Dock="Bottom" Spacing="{StaticResource SpaceMd}" Margin="0,16,0,0">
+                    <Border Background="{StaticResource BorderSubtleBrush}" Height="1"/>
+
+                    <StackPanel Spacing="{StaticResource SpaceXs}">
+                        <TextBlock Text="WATCHER" Classes="label"/>
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <Ellipse Grid.Column="0" Width="8" Height="8"
+                                     Fill="{StaticResource HealthHealthyBrush}"
+                                     VerticalAlignment="Center"
+                                     IsVisible="{Binding IsWatcherEnabled}"/>
+                            <Ellipse Grid.Column="0" Width="8" Height="8"
+                                     Fill="{StaticResource TextDisabledBrush}"
+                                     VerticalAlignment="Center"
+                                     IsVisible="{Binding !IsWatcherEnabled}"/>
+                            <TextBlock Grid.Column="1" Classes="body-sm"
+                                       Text="Auto-snapshot" Margin="8,0,0,0"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="2" Classes="numeric"
+                                       FontSize="11"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       Text="ON" VerticalAlignment="Center"
+                                       IsVisible="{Binding IsWatcherEnabled}"/>
+                            <TextBlock Grid.Column="2" Classes="numeric"
+                                       FontSize="11"
+                                       Foreground="{StaticResource TextDisabledBrush}"
+                                       Text="OFF" VerticalAlignment="Center"
+                                       IsVisible="{Binding !IsWatcherEnabled}"/>
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsWatcherEnabled}">
+                            <TextBlock Grid.Column="0" Classes="body-sm" Text="Debounce"/>
+                            <TextBlock Grid.Column="1" Classes="numeric" FontSize="11"
+                                       Foreground="{StaticResource TextSecondaryBrush}">
+                                <Run Text="{Binding WatcherDebounceSeconds}"/><Run Text="s"/>
+                            </TextBlock>
+                        </Grid>
+                    </StackPanel>
+
+                    <Border Background="{StaticResource BorderSubtleBrush}" Height="1"/>
+
+                    <StackPanel Spacing="{StaticResource SpaceXs}">
+                        <TextBlock Text="STORAGE" Classes="label"/>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Classes="body-sm" Text="Snapshots"/>
+                            <TextBlock Grid.Column="1" Classes="numeric" FontSize="11"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       Text="{Binding TotalSnapshotCount}"/>
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Classes="body-sm" Text="Used"/>
+                            <TextBlock Grid.Column="1" Classes="numeric" FontSize="11"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       Text="{Binding TotalDiskUsedText}"/>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- User list at the top -->
                 <TextBlock DockPanel.Dock="Top"
-                           Text="Steam users"
-                           Foreground="{StaticResource TextSecondaryBrush}"
-                           FontSize="10" FontWeight="SemiBold"
-                           Margin="0,0,0,8" />
+                           Text="STEAM USERS"
+                           Classes="label"
+                           Margin="0,0,0,8"/>
                 <TextBlock DockPanel.Dock="Top"
                            Text="(none discovered)"
-                           Foreground="{StaticResource TextSecondaryBrush}"
-                           FontSize="11"
+                           Classes="body-sm"
                            Margin="0,0,0,8"
-                           IsVisible="{Binding ShowEmptyState}" />
+                           IsVisible="{Binding ShowEmptyState}"/>
                 <ListBox ItemsSource="{Binding SteamUsers}"
                          SelectedItem="{Binding SelectedSteamUser}"
                          Background="Transparent"
@@ -84,13 +141,10 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:SteamUserViewModel">
                             <StackPanel Spacing="2" Margin="0,4">
-                                <TextBlock Text="{Binding SteamId32}"
-                                           Foreground="{StaticResource TextPrimaryBrush}"
-                                           FontWeight="SemiBold" />
-                                <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
-                                           FontSize="11">
-                                    <Run Text="{Binding SlotCount}" />
-                                    <Run Text=" slots" />
+                                <TextBlock Text="{Binding SteamId32}" Classes="body-emph"/>
+                                <TextBlock Classes="body-sm">
+                                    <Run Text="{Binding SlotCount}"/>
+                                    <Run Text=" slots"/>
                                 </TextBlock>
                             </StackPanel>
                         </DataTemplate>

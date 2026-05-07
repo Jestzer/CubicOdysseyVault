@@ -27,6 +27,8 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private int _totalSnapshotCount;
     [ObservableProperty] private long _totalDiskUsedBytes;
     [ObservableProperty] private string _totalDiskUsedText = "0 B";
+    [ObservableProperty] private bool _isWatcherEnabled;
+    [ObservableProperty] private int _watcherDebounceSeconds;
 
     private AppSettings _settings;
     private bool _skipOnboardingThisSession;
@@ -47,6 +49,8 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         _settings = AppSettingsService.Load();
         _coordinator = new BackupCoordinator(EffectiveBackupRoot(_settings), BuildRetention(_settings));
+        IsWatcherEnabled = _settings.WatcherEnabled;
+        WatcherDebounceSeconds = _settings.WatcherDebounceSeconds;
     }
 
     [RelayCommand]
@@ -262,6 +266,8 @@ public partial class MainWindowViewModel : ViewModelBase
         // Drop the cached catalog so the next inspector open reloads from the
         // new path (covers both override-set and override-cleared cases).
         if (gameInstallChanged) _itemCatalog = null;
+        IsWatcherEnabled = _settings.WatcherEnabled;
+        WatcherDebounceSeconds = _settings.WatcherDebounceSeconds;
     }
 
     private void StartWatchers(IReadOnlyList<SaveSource> sources)
