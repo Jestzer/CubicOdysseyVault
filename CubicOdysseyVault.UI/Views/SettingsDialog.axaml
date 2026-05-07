@@ -43,7 +43,7 @@
 
                 <!-- Game install path -->
                 <StackPanel Spacing="6">
-                    <TextBlock Classes="label" Text="GAME INSTALL PATH" />
+                    <TextBlock Classes="label" Text="CUBIC ODYSSEY INSTALL" />
                     <TextBlock Classes="body-sm"
                                Text="Path to the folder containing data/configs/items/ and data/sprites/icons.png. Used for friendly item titles and per-item icons in the save inspector. Leave blank to auto-discover under your Steam libraries."
                                TextWrapping="Wrap" />
@@ -91,7 +91,7 @@
 
                 <!-- Watcher -->
                 <StackPanel Spacing="6">
-                    <TextBlock Classes="label" Text="FILE WATCHER" />
+                    <TextBlock Classes="label" Text="AUTOMATIC BACKUPS" />
                     <CheckBox Content="Watch save folders and snapshot on change"
                               IsChecked="{Binding WatcherEnabled}"
                               Foreground="{StaticResource TextPrimaryBrush}" />
