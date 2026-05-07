@@ -16,25 +16,23 @@
         <StackPanel DockPanel.Dock="Bottom"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
-                    Spacing="8"
+                    Spacing="{StaticResource SpaceSm}"
                     Margin="0,16,0,0">
-            <Button Content="Cancel" MinWidth="90" Command="{Binding CancelCommand}" />
-            <Button Content="Save"   MinWidth="90" Command="{Binding SaveCommand}" />
+            <Button Classes="secondary" Content="Cancel" MinWidth="90" Command="{Binding CancelCommand}" />
+            <Button Classes="primary"   Content="Save"   MinWidth="90" Command="{Binding SaveCommand}" />
         </StackPanel>
 
         <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="16">
+            <StackPanel Spacing="{StaticResource SpaceLg}">
                 <!-- Backup root -->
                 <StackPanel Spacing="6">
-                    <TextBlock Text="Backup root"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               FontSize="11" FontWeight="SemiBold" />
-                    <TextBlock Text="Snapshots are written here. Defaults to a folder under your local app data."
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               FontSize="11"
+                    <TextBlock Classes="label" Text="BACKUP ROOT" />
+                    <TextBlock Classes="body-sm"
+                               Text="Snapshots are written here. Defaults to a folder under your local app data."
                                TextWrapping="Wrap" />
                     <DockPanel>
                         <Button DockPanel.Dock="Right"
+                                Classes="secondary"
                                 Content="Browse..."
                                 MinWidth="90"
                                 Margin="8,0,0,0"
@@ -45,15 +43,13 @@
 
                 <!-- Game install path -->
                 <StackPanel Spacing="6">
-                    <TextBlock Text="Cubic Odyssey install"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               FontSize="11" FontWeight="SemiBold" />
-                    <TextBlock Text="Path to the folder containing data/configs/items/ and data/sprites/icons.png. Used for friendly item titles and per-item icons in the save inspector. Leave blank to auto-discover under your Steam libraries."
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               FontSize="11"
+                    <TextBlock Classes="label" Text="GAME INSTALL PATH" />
+                    <TextBlock Classes="body-sm"
+                               Text="Path to the folder containing data/configs/items/ and data/sprites/icons.png. Used for friendly item titles and per-item icons in the save inspector. Leave blank to auto-discover under your Steam libraries."
                                TextWrapping="Wrap" />
                     <DockPanel>
                         <Button DockPanel.Dock="Right"
+                                Classes="secondary"
                                 Content="Browse..."
                                 MinWidth="90"
                                 Margin="8,0,0,0"
@@ -65,17 +61,11 @@
 
                 <!-- Manual sources -->
                 <StackPanel Spacing="6">
-                    <TextBlock Text="Manual save sources"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               FontSize="11" FontWeight="SemiBold" />
-                    <TextBlock Text="Extra folders to scan for slots — useful for external drives or recovered backups."
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               FontSize="11"
+                    <TextBlock Classes="label" Text="MANUAL SAVE SOURCES" />
+                    <TextBlock Classes="body-sm"
+                               Text="Extra folders to scan for slots — useful for external drives or recovered backups."
                                TextWrapping="Wrap" />
-                    <Border Background="{StaticResource SidebarBlockBrush}"
-                            BorderBrush="{StaticResource SeparatorBrush}"
-                            BorderThickness="1"
-                            CornerRadius="3"
+                    <Border Classes="card"
                             Padding="0">
                         <ListBox Height="100"
                                  ItemsSource="{Binding ManualSourceRoots}"
@@ -84,16 +74,16 @@
                                  BorderThickness="0">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding}"
-                                               Foreground="{StaticResource TextPrimaryBrush}"
-                                               FontSize="12" />
+                                    <TextBlock Classes="body"
+                                               Text="{Binding}" />
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
                     </Border>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Content="Add..." Command="{Binding AddManualRootCommand}" />
-                        <Button Content="Remove"
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource SpaceSm}">
+                        <Button Classes="secondary" Content="Add..." Command="{Binding AddManualRootCommand}" />
+                        <Button Classes="secondary"
+                                Content="Remove"
                                 Command="{Binding RemoveManualRootCommand}"
                                 IsEnabled="{Binding SelectedManualRoot, Converter={x:Static ObjectConverters.IsNotNull}}" />
                     </StackPanel>
@@ -101,16 +91,14 @@
 
                 <!-- Watcher -->
                 <StackPanel Spacing="6">
-                    <TextBlock Text="Automatic backups"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               FontSize="11" FontWeight="SemiBold" />
+                    <TextBlock Classes="label" Text="FILE WATCHER" />
                     <CheckBox Content="Watch save folders and snapshot on change"
                               IsChecked="{Binding WatcherEnabled}"
                               Foreground="{StaticResource TextPrimaryBrush}" />
                     <DockPanel IsEnabled="{Binding WatcherEnabled}">
                         <TextBlock DockPanel.Dock="Left"
+                                   Classes="body"
                                    Text="Debounce window (seconds):"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" />
                         <NumericUpDown Value="{Binding WatcherDebounceSeconds}"
                                        Minimum="1" Maximum="300"
@@ -123,30 +111,27 @@
 
                 <!-- Retention -->
                 <StackPanel Spacing="6">
-                    <TextBlock Text="Retention"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               FontSize="11" FontWeight="SemiBold" />
-                    <TextBlock Text="How many automatic snapshots to keep at each tier. Manual + tagged snapshots are kept forever."
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               FontSize="11"
+                    <TextBlock Classes="label" Text="RETENTION" />
+                    <TextBlock Classes="body-sm"
+                               Text="How many automatic snapshots to keep at each tier. Manual + tagged snapshots are kept forever."
                                TextWrapping="Wrap" />
                     <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,8,Auto,8,Auto">
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Hourly:"
-                                   Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="0" Grid.Column="0" Classes="body" Text="Hourly:"
+                                   VerticalAlignment="Center" />
                         <NumericUpDown Grid.Row="0" Grid.Column="1"
                                        Value="{Binding HourlySnapshotsKept}"
                                        Minimum="0" Maximum="999"
                                        FormatString="0"
                                        Width="120" HorizontalAlignment="Left" />
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Daily:"
-                                   Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="2" Grid.Column="0" Classes="body" Text="Daily:"
+                                   VerticalAlignment="Center" />
                         <NumericUpDown Grid.Row="2" Grid.Column="1"
                                        Value="{Binding DailySnapshotsKept}"
                                        Minimum="0" Maximum="999"
                                        FormatString="0"
                                        Width="120" HorizontalAlignment="Left" />
-                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Weekly:"
-                                   Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="4" Grid.Column="0" Classes="body" Text="Weekly:"
+                                   VerticalAlignment="Center" />
                         <NumericUpDown Grid.Row="4" Grid.Column="1"
                                        Value="{Binding WeeklySnapshotsKept}"
                                        Minimum="0" Maximum="999"
