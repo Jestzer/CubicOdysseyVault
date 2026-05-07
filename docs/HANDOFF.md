@@ -1,11 +1,12 @@
-# Handoff — pick up from Phase 9
+# Handoff — all phases shipped
 
-> Updated 2026-05-06 at the end of the cross-platform polish phase.
-> Read this first when resuming work.
+> Updated 2026-05-06 at the end of Phase 10. See `README.md` for the
+> user-facing description; this file is for the next person picking
+> up follow-up work.
 
 ## Where we are
 
-**Phases 1–9 are done.** The solution builds clean
+**All 10 phases of `docs/PLAN.md` are done.** The solution builds clean
 (`dotnet build CubicOdysseyVault.sln` → 0 warnings, 0 errors),
 `dotnet test` passes 89 tests on Linux, and the discovery layer
 now resolves Windows save sources end-to-end: Documents (via
@@ -77,19 +78,34 @@ What Phase 8 added:
   retention interaction test (tagging an Auto snapshot promotes it
   to "always keep" so it survives a subsequent prune). Total: 89.
 
-## What's next: Phase 10 (README + final docs)
+## What's left (loose ends, not blocking)
 
-Per `docs/PLAN.md` item 10:
-
-1. README at the repo root describing what the tool does, why it
-   exists (the Cubic Odyssey save corruption story), build + run
-   instructions for each platform, and a brief tour of the on-disk
-   shape (`<backupRoot>/snapshots/<SteamID32>/<account>/<slot>/...`)
-   so users who want to dig into the backup folder by hand can.
-2. Screenshots optional — depends on whether we can capture the GUI
-   from a non-interactive run. Skip if not feasible.
-3. Mark the project as v0.1 in `CubicOdysseyVault.UI.csproj`'s
-   `<Version>` element so the assembly version matches the milestone.
+- **Windows runtime smoke-test**: the Phase 9 path/registry code
+  compiles cross-platform but hasn't been exercised on an actual
+  Windows host. Next time someone runs the app on Windows: confirm
+  `SteamLocator.Locate` returns at least one root from the registry
+  probe, and `SaveLocator.LocateSources` surfaces a `Documents`-kind
+  source matching `<UserProfile>\Documents\Cubic Odyssey\save\`.
+- **Validate inferred Steam Cloud `remote/` layout** when sync
+  materializes the directory. Currently `SaveLocator` builds the
+  path by combining `userdata/<id>/<app>/remote/Cubic Odyssey/save`,
+  inferred from `remotecache.vdf` paths.
+- **Account-level snapshot UI**: account snapshots are stored and
+  pruned correctly but the right detail panel only surfaces slot
+  history. Adding an account-history flyout (or merging into the
+  existing card) is the obvious next polish pass.
+- **Steam display name** from `<root>/userdata/<SteamID32>/config/localconfig.vdf`:
+  sidebar still shows raw `SteamID32`. Small VDF parsing job.
+- **Promote Cloud sources once `remote/` materializes**: needs a
+  re-scan or a watcher on the `userdata/<id>/<app>/` parent.
+- **Live "current state" health** vs. "latest snapshot health":
+  could surface as a "Re-check" button in the right detail panel.
+- **Bulk operations** ("delete all auto > 30 days", "tag-all",
+  multi-select) — building blocks exist; UI doesn't.
+- **Garbage-collect orphan snapshot folders** that survived a
+  failed `Directory.Delete` during snapshot deletion.
+- **Screenshots in the README** — not captured here because the
+  GUI-launch flow doesn't have an automated screenshot step yet.
 
 ## Open assumptions still unvalidated
 
