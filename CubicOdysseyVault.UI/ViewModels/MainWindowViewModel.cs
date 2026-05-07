@@ -124,6 +124,18 @@ public partial class MainWindowViewModel : ViewModelBase
     private ItemCatalog EnsureCatalog()
     {
         if (_itemCatalog != null) return _itemCatalog;
+
+        // Settings override wins over auto-discovery.
+        if (!string.IsNullOrEmpty(_settings.GameInstallPath))
+        {
+            var fromSettings = ItemCatalog.LoadFrom(_settings.GameInstallPath);
+            if (!fromSettings.IsEmpty)
+            {
+                _itemCatalog = fromSettings;
+                return _itemCatalog;
+            }
+        }
+
         var roots = SteamLocator.Locate();
         var candidates = roots.Select(r =>
             Path.Combine(r.CanonicalPath, Constants.SteamCommonRelative, Constants.CubicOdysseyInstallFolderName));
@@ -239,9 +251,13 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void ApplySettings(AppSettings updated)
     {
+        var gameInstallChanged = !string.Equals(_settings.GameInstallPath, updated.GameInstallPath, StringComparison.Ordinal);
         _settings = updated;
         AppSettingsService.Save(_settings);
         _coordinator.Update(EffectiveBackupRoot(_settings), BuildRetention(_settings));
+        // Drop the cached catalog so the next inspector open reloads from the
+        // new path (covers both override-set and override-cleared cases).
+        if (gameInstallChanged) _itemCatalog = null;
     }
 
     private void StartWatchers(IReadOnlyList<SaveSource> sources)

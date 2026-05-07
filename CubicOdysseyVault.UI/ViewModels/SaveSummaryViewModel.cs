@@ -22,7 +22,7 @@ public sealed class SaveSummaryViewModel : ViewModelBase
     {
         Summary = summary;
         foreach (var c in summary.Inventories)
-            Containers.Add(new InventoryContainerViewModel(c));
+            Containers.Add(new InventoryContainerViewModel(c, summary.IconAtlas));
         foreach (var s in summary.ShipFiles)
             Ships.Add(s);
         foreach (var w in summary.Warnings)

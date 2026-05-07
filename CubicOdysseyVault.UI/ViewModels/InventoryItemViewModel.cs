@@ -1,11 +1,15 @@
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using CubicOdysseyVault.Core.SaveContent;
+using CubicOdysseyVault.UI.Services;
 
 namespace CubicOdysseyVault.UI.ViewModels;
 
 public sealed class InventoryItemViewModel : ViewModelBase
 {
     public InventoryItem Item { get; }
+    public IImage? IconBitmap { get; }
+    public bool HasIcon => IconBitmap != null;
     public string DisplayName => Item.DisplayName;
     public string Identifier => Item.Identifier;
     public int Count => Item.Count;
@@ -26,10 +30,12 @@ public sealed class InventoryItemViewModel : ViewModelBase
     public bool HasTier => Item.Tier > 0;
     public string TypeRaw => Item.Metadata?.TypeRaw ?? "";
 
-    public InventoryItemViewModel(InventoryItem item)
+    public InventoryItemViewModel(InventoryItem item, SpriteAtlas? atlas = null)
     {
         Item = item;
         CategoryBrush = ResolveBrush(item.Category);
+        if (atlas != null && item.Metadata != null && item.Metadata.InvFrame > 0)
+            IconBitmap = IconAtlasCache.Slice(atlas, item.Metadata.InvFrame);
     }
 
     private static IBrush ResolveBrush(ItemCategory cat)

@@ -5,8 +5,8 @@
         x:DataType="vm:SettingsViewModel"
         Title="Settings"
         Icon="/Assets/icon.png"
-        Width="560" Height="600"
-        MinWidth="520" MinHeight="540"
+        Width="560" Height="700"
+        MinWidth="520" MinHeight="600"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource MainBackgroundBrush}">
@@ -40,6 +40,26 @@
                                 Margin="8,0,0,0"
                                 Command="{Binding BrowseBackupRootCommand}" />
                         <TextBox Text="{Binding BackupRootPath}" />
+                    </DockPanel>
+                </StackPanel>
+
+                <!-- Game install path -->
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Cubic Odyssey install"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="11" FontWeight="SemiBold" />
+                    <TextBlock Text="Path to the folder containing data/configs/items/ and data/sprites/icons.png. Used for friendly item titles and per-item icons in the save inspector. Leave blank to auto-discover under your Steam libraries."
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="11"
+                               TextWrapping="Wrap" />
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right"
+                                Content="Browse..."
+                                MinWidth="90"
+                                Margin="8,0,0,0"
+                                Command="{Binding BrowseGameInstallCommand}" />
+                        <TextBox Text="{Binding GameInstallPath}"
+                                 Watermark="(auto-discover)" />
                     </DockPanel>
                 </StackPanel>
 

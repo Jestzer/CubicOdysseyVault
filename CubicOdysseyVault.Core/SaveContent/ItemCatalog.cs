@@ -3,11 +3,18 @@ namespace CubicOdysseyVault.Core.SaveContent;
 public sealed class ItemCatalog
 {
     public IReadOnlyDictionary<string, ItemMetadata> ByIdentifier { get; }
+    public SpriteAtlas? IconAtlas { get; }
+    public string? GameInstallDir { get; }
     public bool IsEmpty => ByIdentifier.Count == 0;
 
-    public ItemCatalog(IReadOnlyDictionary<string, ItemMetadata> byIdentifier)
+    public ItemCatalog(
+        IReadOnlyDictionary<string, ItemMetadata> byIdentifier,
+        SpriteAtlas? iconAtlas = null,
+        string? gameInstallDir = null)
     {
         ByIdentifier = byIdentifier;
+        IconAtlas = iconAtlas;
+        GameInstallDir = gameInstallDir;
     }
 
     public ItemMetadata? Lookup(string identifier) =>
@@ -18,6 +25,7 @@ public sealed class ItemCatalog
 
     // Walks <gameInstall>/data/configs/items/*.cfg and parses each file.
     // Errors on individual files are swallowed — we return whatever parsed.
+    // Also tries to load the icon atlas (icons.bspr + icons.png) for visuals.
     public static ItemCatalog LoadFrom(string gameInstallDir)
     {
         if (string.IsNullOrEmpty(gameInstallDir)) return Empty;
@@ -31,7 +39,9 @@ public sealed class ItemCatalog
             if (meta == null) continue;
             dict[meta.Identifier] = meta;
         }
-        return new ItemCatalog(dict);
+
+        var atlas = SpriteAtlas.LoadFromGameInstall(gameInstallDir);
+        return new ItemCatalog(dict, atlas, gameInstallDir);
     }
 
     // Tries common Cubic Odyssey install locations across Steam libraries.

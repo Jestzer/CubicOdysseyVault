@@ -19,7 +19,7 @@ public static class SaveSummaryBuilder
             .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        return new SaveSummary(slot, characterName, savedAt, inventories, ships, warnings);
+        return new SaveSummary(slot, characterName, savedAt, inventories, ships, warnings, catalog.IconAtlas);
     }
 
     // 93_meta.sav holds the character name as a plain ASCII run inside one of

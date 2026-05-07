@@ -16,6 +16,7 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private int _dailySnapshotsKept = 14;
     [ObservableProperty] private int _weeklySnapshotsKept = 8;
     [ObservableProperty] private int _watcherDebounceSeconds = 10;
+    [ObservableProperty] private string _gameInstallPath = "";
 
     public bool WasSaved { get; private set; }
 
@@ -31,6 +32,7 @@ public partial class SettingsViewModel : ViewModelBase
         DailySnapshotsKept = settings.DailySnapshotsKept;
         WeeklySnapshotsKept = settings.WeeklySnapshotsKept;
         WatcherDebounceSeconds = settings.WatcherDebounceSeconds;
+        GameInstallPath = settings.GameInstallPath;
     }
 
     [RelayCommand]
@@ -39,6 +41,14 @@ public partial class SettingsViewModel : ViewModelBase
         if (PickFolderRequested == null) return;
         var path = await PickFolderRequested();
         if (!string.IsNullOrEmpty(path)) BackupRootPath = path;
+    }
+
+    [RelayCommand]
+    private async Task BrowseGameInstall()
+    {
+        if (PickFolderRequested == null) return;
+        var path = await PickFolderRequested();
+        if (!string.IsNullOrEmpty(path)) GameInstallPath = path;
     }
 
     [RelayCommand]
@@ -82,5 +92,6 @@ public partial class SettingsViewModel : ViewModelBase
         DailySnapshotsKept = DailySnapshotsKept,
         WeeklySnapshotsKept = WeeklySnapshotsKept,
         WatcherDebounceSeconds = WatcherDebounceSeconds,
+        GameInstallPath = GameInstallPath,
     };
 }

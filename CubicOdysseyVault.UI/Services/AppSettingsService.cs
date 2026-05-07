@@ -62,4 +62,8 @@ public class AppSettings
     public int DailySnapshotsKept { get; set; } = 14;
     public int WeeklySnapshotsKept { get; set; } = 8;
     public int WatcherDebounceSeconds { get; set; } = 10;
+    // Optional explicit path to the Cubic Odyssey install directory (the
+    // folder containing data/configs/items/ and data/sprites/icons.png).
+    // Empty = auto-discover under each Steam root's steamapps/common/.
+    public string GameInstallPath { get; set; } = "";
 }

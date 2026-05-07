@@ -8,4 +8,5 @@ public sealed record SaveSummary(
     DateTime? SavedAtUtc,
     IReadOnlyList<InventoryContainer> Inventories,
     IReadOnlyList<string> ShipFiles,
-    IReadOnlyList<string> Warnings);
+    IReadOnlyList<string> Warnings,
+    SpriteAtlas? IconAtlas);

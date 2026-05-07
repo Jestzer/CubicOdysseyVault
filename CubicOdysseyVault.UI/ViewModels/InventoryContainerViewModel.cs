@@ -14,10 +14,10 @@ public sealed class InventoryContainerViewModel : ViewModelBase
 
     public ObservableCollection<InventoryItemViewModel> Items { get; } = new();
 
-    public InventoryContainerViewModel(InventoryContainer container)
+    public InventoryContainerViewModel(InventoryContainer container, SpriteAtlas? atlas = null)
     {
         Container = container;
         foreach (var i in container.Items)
-            Items.Add(new InventoryItemViewModel(i));
+            Items.Add(new InventoryItemViewModel(i, atlas));
     }
 }

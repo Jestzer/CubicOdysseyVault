@@ -118,36 +118,50 @@
                                             <ItemsControl ItemsSource="{Binding Items}">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate x:DataType="vm:InventoryItemViewModel">
-                                                        <Grid ColumnDefinitions="60,38,*,Auto" Margin="0,2">
+                                                        <Grid ColumnDefinitions="44,60,38,*,Auto" Margin="0,3">
                                                             <Border Grid.Column="0"
+                                                                    Width="40" Height="40"
+                                                                    Background="{StaticResource SidebarBackgroundBrush}"
+                                                                    BorderBrush="{StaticResource SeparatorBrush}"
+                                                                    BorderThickness="1"
+                                                                    CornerRadius="3"
+                                                                    ClipToBounds="True"
+                                                                    HorizontalAlignment="Left"
+                                                                    IsVisible="{Binding HasIcon}">
+                                                                <Image Source="{Binding IconBitmap}"
+                                                                       Stretch="Uniform" />
+                                                            </Border>
+                                                            <Border Grid.Column="1"
                                                                     Background="{Binding CategoryBrush}"
                                                                     CornerRadius="3"
                                                                     Padding="4,2"
+                                                                    VerticalAlignment="Center"
                                                                     HorizontalAlignment="Left">
                                                                 <TextBlock Text="{Binding CategoryAbbreviation}"
                                                                            Foreground="White"
                                                                            FontSize="10" FontWeight="SemiBold" />
                                                             </Border>
-                                                            <Border Grid.Column="1"
+                                                            <Border Grid.Column="2"
                                                                     BorderBrush="{StaticResource SeparatorBrush}"
                                                                     BorderThickness="1"
                                                                     CornerRadius="3"
                                                                     Padding="4,2"
                                                                     Margin="6,0,0,0"
+                                                                    VerticalAlignment="Center"
                                                                     HorizontalAlignment="Left"
                                                                     IsVisible="{Binding HasTier}">
                                                                 <TextBlock Text="{Binding TierText}"
                                                                            Foreground="{StaticResource TextSecondaryBrush}"
                                                                            FontSize="10" FontWeight="SemiBold" />
                                                             </Border>
-                                                            <TextBlock Grid.Column="2"
+                                                            <TextBlock Grid.Column="3"
                                                                        Text="{Binding DisplayName}"
                                                                        Foreground="{StaticResource TextPrimaryBrush}"
                                                                        FontSize="12"
                                                                        VerticalAlignment="Center"
                                                                        Margin="10,0,0,0"
                                                                        TextWrapping="Wrap" />
-                                                            <TextBlock Grid.Column="3"
+                                                            <TextBlock Grid.Column="4"
                                                                        Text="{Binding CountText}"
                                                                        Foreground="{StaticResource TextPrimaryBrush}"
                                                                        FontFamily="Consolas,monospace"
