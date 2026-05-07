@@ -322,80 +322,79 @@
                              SelectedItem="{Binding SelectedSlot}"
                              Background="Transparent"
                              BorderThickness="0">
+                        <ListBox.Styles>
+                            <Style Selector="ListBoxItem">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0,0,12,12"/>
+                            </Style>
+                            <Style Selector="ListBoxItem /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Padding" Value="0"/>
+                            </Style>
+                            <!-- Hover lift on slot cards (only inside this ListBox) -->
+                            <Style Selector="ListBoxItem:pointerover Border.card">
+                                <Setter Property="BoxShadow" Value="0 4 14 #80000000"/>
+                                <Setter Property="BorderBrush" Value="#26FFFFFF"/>
+                            </Style>
+                        </ListBox.Styles>
                         <ListBox.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal" />
+                                <WrapPanel Orientation="Horizontal"/>
                             </ItemsPanelTemplate>
                         </ListBox.ItemsPanel>
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:SaveSlotViewModel">
-                                <Border Width="240" Height="232"
-                                        Margin="0,0,12,12"
-                                        Padding="12"
-                                        Background="{StaticResource SidebarBlockBrush}"
-                                        BorderBrush="{StaticResource SeparatorBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="6">
-                                    <DockPanel>
-                                        <!-- Thumbnail (top), with health badge overlay -->
-                                        <Grid DockPanel.Dock="Top" Height="92" Margin="0,0,0,6">
-                                            <Border CornerRadius="3"
-                                                    BorderBrush="{StaticResource SeparatorBrush}"
-                                                    BorderThickness="1"
+                                <Border Width="220" Height="200"
+                                        Classes="card"
+                                        Classes.selected="{Binding $parent[ListBoxItem].IsSelected}">
+                                    <Grid>
+                                        <DockPanel>
+                                            <!-- Thumbnail -->
+                                            <Border DockPanel.Dock="Top" Height="108"
+                                                    CornerRadius="8,8,0,0"
+                                                    BorderBrush="{StaticResource BorderSubtleBrush}"
+                                                    BorderThickness="0,0,0,1"
                                                     ClipToBounds="True"
                                                     Background="{StaticResource SidebarBackgroundBrush}">
-                                                <Image Source="{Binding Screenshot}"
-                                                       Stretch="UniformToFill" />
+                                                <Image Source="{Binding Screenshot}" Stretch="UniformToFill"/>
                                             </Border>
-                                            <!-- Health dot, top-right -->
-                                            <Ellipse Width="12" Height="12"
-                                                     HorizontalAlignment="Right" VerticalAlignment="Top"
-                                                     Margin="0,4,4,0"
-                                                     Stroke="{StaticResource SidebarBackgroundBrush}"
-                                                     StrokeThickness="1.5"
-                                                     Fill="{StaticResource HealthHealthyBrush}"
-                                                     IsVisible="{Binding IsHealthHealthy}" />
-                                            <Ellipse Width="12" Height="12"
-                                                     HorizontalAlignment="Right" VerticalAlignment="Top"
-                                                     Margin="0,4,4,0"
-                                                     Stroke="{StaticResource SidebarBackgroundBrush}"
-                                                     StrokeThickness="1.5"
-                                                     Fill="{StaticResource HealthSuspiciousBrush}"
-                                                     IsVisible="{Binding IsHealthSuspicious}" />
-                                            <Ellipse Width="12" Height="12"
-                                                     HorizontalAlignment="Right" VerticalAlignment="Top"
-                                                     Margin="0,4,4,0"
-                                                     Stroke="{StaticResource SidebarBackgroundBrush}"
-                                                     StrokeThickness="1.5"
-                                                     Fill="{StaticResource HealthCorruptedBrush}"
-                                                     IsVisible="{Binding IsHealthCorrupted}" />
-                                            <Ellipse Width="12" Height="12"
-                                                     HorizontalAlignment="Right" VerticalAlignment="Top"
-                                                     Margin="0,4,4,0"
-                                                     Stroke="{StaticResource SidebarBackgroundBrush}"
-                                                     StrokeThickness="1.5"
-                                                     Fill="{StaticResource TextSecondaryBrush}"
-                                                     IsVisible="{Binding IsHealthUnchecked}" />
-                                        </Grid>
-                                        <Button DockPanel.Dock="Bottom"
-                                                Content="Back up now"
-                                                HorizontalAlignment="Stretch"
-                                                Margin="0,4,0,0"
-                                                Command="{Binding BackUpNowCommand}" />
-                                        <StackPanel Spacing="3">
-                                            <TextBlock Foreground="{StaticResource TextPrimaryBrush}"
-                                                       FontWeight="SemiBold">
-                                                <Run Text="Slot "/><Run Text="{Binding SlotName}"/><Run Text=" / acct "/><Run Text="{Binding AccountFolderName}"/>
-                                            </TextBlock>
-                                            <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
-                                                       FontSize="11">
-                                                <Run Text="{Binding FileCount}"/><Run Text=" files · "/><Run Text="{Binding FormattedSize}"/>
-                                            </TextBlock>
-                                            <TextBlock Text="{Binding LastSnapshotText}"
-                                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                                       FontSize="10" />
-                                        </StackPanel>
-                                    </DockPanel>
+                                            <!-- Body -->
+                                            <StackPanel Spacing="{StaticResource SpaceXs}"
+                                                        Margin="12"
+                                                        VerticalAlignment="Top">
+                                                <TextBlock Classes="title">
+                                                    <Run Text="Slot "/><Run Text="{Binding SlotName}"/>
+                                                </TextBlock>
+                                                <TextBlock Classes="body-sm">
+                                                    <Run Text="{Binding FileCount}"/><Run Text=" files"/>
+                                                </TextBlock>
+                                                <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4,0,0">
+                                                    <Border Grid.Column="0" Classes="pill health-ok"
+                                                            IsVisible="{Binding IsHealthHealthy}">
+                                                        <TextBlock Text="HEALTHY"/>
+                                                    </Border>
+                                                    <Border Grid.Column="0" Classes="pill health-sus"
+                                                            IsVisible="{Binding IsHealthSuspicious}">
+                                                        <TextBlock Text="SUSPECT"/>
+                                                    </Border>
+                                                    <Border Grid.Column="0" Classes="pill health-bad"
+                                                            IsVisible="{Binding IsHealthCorrupted}">
+                                                        <TextBlock Text="CORRUPTED"/>
+                                                    </Border>
+                                                    <TextBlock Grid.Column="2" Classes="caption"
+                                                               VerticalAlignment="Center"
+                                                               Text="{Binding LastSnapshotText}"/>
+                                                </Grid>
+                                            </StackPanel>
+                                        </DockPanel>
+                                        <!-- Voxel notch — top-right, only when selected -->
+                                        <Path Data="M 0 0 L 16 0 L 16 16 Z"
+                                              Fill="{StaticResource AccentBrush}"
+                                              HorizontalAlignment="Right"
+                                              VerticalAlignment="Top"
+                                              IsVisible="{Binding $parent[ListBoxItem].IsSelected}"/>
+                                    </Grid>
                                 </Border>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
