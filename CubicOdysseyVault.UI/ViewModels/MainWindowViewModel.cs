@@ -3,6 +3,7 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CubicOdysseyVault.Core.Saves;
+using CubicOdysseyVault.Core.Snapshots;
 using CubicOdysseyVault.Core.Steam;
 using CubicOdysseyVault.UI.Services;
 
@@ -13,6 +14,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private string _statusMessage = "Ready.";
     [ObservableProperty] private ObservableCollection<SteamUserViewModel> _steamUsers = new();
     [ObservableProperty] private SteamUserViewModel? _selectedSteamUser;
+    [ObservableProperty] private SaveSlotViewModel? _selectedSlot;
     [ObservableProperty] private ObservableCollection<SaveSourceViewModel> _discoveredSources = new();
     [ObservableProperty] private bool _isDiscovering;
     [ObservableProperty] private bool _hasDiscovered;
@@ -20,6 +22,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private AppSettings _settings;
     private bool _skipOnboardingThisSession;
+    private BackupCoordinator _coordinator;
 
     public Func<AppSettings, Task<AppSettings?>>? ShowSettingsDialog { get; set; }
     public Func<AppSettings, int, int, int, Task<AppSettings?>>? ShowOnboardingDialog { get; set; }
@@ -28,6 +31,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel()
     {
         _settings = AppSettingsService.Load();
+        _coordinator = new BackupCoordinator(EffectiveBackupRoot(_settings));
     }
 
     [RelayCommand]
@@ -40,8 +44,11 @@ public partial class MainWindowViewModel : ViewModelBase
 
         try
         {
+            SelectedSlot = null;
             var manualRoots = _settings.ManualSourceRoots.ToList();
-            var result = await Task.Run(() => DiscoverSync(manualRoots));
+            var coordinator = _coordinator;
+
+            var result = await Task.Run(() => DiscoverSync(manualRoots, coordinator));
 
             SteamUsers.Clear();
             DiscoveredSources.Clear();
@@ -75,8 +82,7 @@ public partial class MainWindowViewModel : ViewModelBase
         var updated = await ShowSettingsDialog(_settings);
         if (updated != null)
         {
-            _settings = updated;
-            AppSettingsService.Save(_settings);
+            ApplySettings(updated);
             StatusMessage = "Settings saved. Re-scanning...";
             await RefreshDiscoveryAsync();
         }
@@ -85,12 +91,8 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void OpenBackupFolder()
     {
-        var path = string.IsNullOrEmpty(_settings.BackupRootPath)
-            ? AppSettingsService.GetSuggestedBackupRoot()
-            : _settings.BackupRootPath;
-
-        try { Directory.CreateDirectory(path); } catch { /* if we can't create, opener may still find a parent */ }
-
+        var path = EffectiveBackupRoot(_settings);
+        try { Directory.CreateDirectory(path); } catch { /* opener may still find a parent */ }
         OpenBackupFolderRequested?.Invoke(path);
     }
 
@@ -105,8 +107,7 @@ public partial class MainWindowViewModel : ViewModelBase
         var updated = await ShowOnboardingDialog(_settings, users, slots, sources);
         if (updated != null)
         {
-            _settings = updated;
-            AppSettingsService.Save(_settings);
+            ApplySettings(updated);
             StatusMessage = "Vault configured. Re-scanning with your settings...";
             await RefreshDiscoveryAsync();
         }
@@ -116,7 +117,19 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private static DiscoveryResult DiscoverSync(IEnumerable<string> manualRoots)
+    private void ApplySettings(AppSettings updated)
+    {
+        _settings = updated;
+        AppSettingsService.Save(_settings);
+        _coordinator.UpdateBackupRoot(EffectiveBackupRoot(_settings));
+    }
+
+    private static string EffectiveBackupRoot(AppSettings settings) =>
+        string.IsNullOrEmpty(settings.BackupRootPath)
+            ? AppSettingsService.GetSuggestedBackupRoot()
+            : settings.BackupRootPath;
+
+    private static DiscoveryResult DiscoverSync(IEnumerable<string> manualRoots, BackupCoordinator coordinator)
     {
         var roots = SteamLocator.Locate();
         var sources = SaveLocator.LocateSources(roots, manualRoots);
@@ -131,11 +144,17 @@ public partial class MainWindowViewModel : ViewModelBase
             if (layout.Accounts.Count > 0 || layout.Slots.Count > 0) activeSources++;
 
             foreach (var acct in layout.Accounts)
-                GetOrAdd(byId, acct.SteamId32).AddAccount(acct);
+            {
+                var avm = GetOrAdd(byId, acct.SteamId32).AddAccount(acct);
+                avm.BackupRequested = a => coordinator.SnapshotAccountAsync(a, SnapshotTrigger.Manual);
+                avm.SetSnapshots(coordinator.ListAccountSnapshots(acct));
+            }
 
             foreach (var slot in layout.Slots)
             {
-                GetOrAdd(byId, slot.SteamId32).AddSlot(slot);
+                var svm = GetOrAdd(byId, slot.SteamId32).AddSlot(slot);
+                svm.BackupRequested = s => coordinator.SnapshotSlotAsync(s, SnapshotTrigger.Manual);
+                svm.SetSnapshots(coordinator.ListSlotSnapshots(slot));
                 totalSlots++;
             }
         }

@@ -16,14 +16,18 @@ public partial class SteamUserViewModel : ViewModelBase
         SteamId32 = steamId32;
     }
 
-    public void AddAccount(SaveAccount account)
+    public SaveAccountViewModel AddAccount(SaveAccount account)
     {
-        Accounts.Add(new SaveAccountViewModel(account));
+        var vm = new SaveAccountViewModel(account);
+        Accounts.Add(vm);
+        return vm;
     }
 
-    public void AddSlot(SaveSlot slot)
+    public SaveSlotViewModel AddSlot(SaveSlot slot)
     {
-        Slots.Add(new SaveSlotViewModel(slot));
+        var vm = new SaveSlotViewModel(slot);
+        Slots.Add(vm);
         SlotCount = Slots.Count;
+        return vm;
     }
 }

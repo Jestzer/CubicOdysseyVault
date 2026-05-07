@@ -1,0 +1,137 @@
+using System.Linq;
+using CubicOdysseyVault.Core.Integrity;
+using CubicOdysseyVault.Core.Saves;
+
+namespace CubicOdysseyVault.Core.Snapshots;
+
+public sealed class BackupService
+{
+    private readonly string _backupRoot;
+
+    public BackupService(string backupRoot)
+    {
+        _backupRoot = backupRoot;
+    }
+
+    public BackupResult SnapshotSlot(SaveSlot slot, SnapshotTrigger trigger, string? tag = null)
+    {
+        var report = IntegrityChecker.InspectSlot(slot);
+
+        if (trigger == SnapshotTrigger.Auto && report.Health == SlotHealth.Corrupted)
+            return new BackupResult { Success = false, Reason = "Slot is corrupted; auto-snapshot abandoned." };
+
+        var snapshotsRoot = SnapshotStore.GetSlotSnapshotsRoot(
+            _backupRoot, slot.SteamId32, slot.AccountFolderName, slot.SlotName);
+        var manifestPath = SnapshotStore.GetManifestPath(snapshotsRoot);
+        var manifest = SnapshotIndex.Load(manifestPath);
+
+        var lastSnap = LatestSnapshot(manifest);
+        if (lastSnap != null && lastSnap.CombinedHash == report.CombinedHash)
+        {
+            return new BackupResult
+            {
+                Success = true, Skipped = true, Snapshot = lastSnap,
+                Reason = "No changes since last snapshot.",
+            };
+        }
+
+        var capturedAt = DateTime.UtcNow;
+        var folderName = BuildFolderName(capturedAt, report.CombinedHash);
+        var snapshotFolder = Path.Combine(snapshotsRoot, folderName);
+
+        SnapshotStore.CopyFilesAtomically(
+            slot.Files.Select(f => (f.FullPath, f.FileName)),
+            snapshotFolder);
+
+        var snapshot = BuildSnapshot(folderName, capturedAt, trigger, tag, report, slot.Source.Kind.ToString());
+        manifest.Snapshots.Add(snapshot);
+        SnapshotIndex.Save(manifest, manifestPath);
+
+        return new BackupResult { Success = true, Snapshot = snapshot };
+    }
+
+    public BackupResult SnapshotAccount(SaveAccount account, SnapshotTrigger trigger, string? tag = null)
+    {
+        var report = IntegrityChecker.InspectAccount(account);
+
+        if (trigger == SnapshotTrigger.Auto && report.Health == SlotHealth.Corrupted)
+            return new BackupResult { Success = false, Reason = "Account data is corrupted; auto-snapshot abandoned." };
+
+        var snapshotsRoot = SnapshotStore.GetAccountSnapshotsRoot(_backupRoot, account.SteamId32);
+        var manifestPath = SnapshotStore.GetManifestPath(snapshotsRoot);
+        var manifest = SnapshotIndex.Load(manifestPath);
+
+        var lastSnap = LatestSnapshot(manifest);
+        if (lastSnap != null && lastSnap.CombinedHash == report.CombinedHash)
+        {
+            return new BackupResult
+            {
+                Success = true, Skipped = true, Snapshot = lastSnap,
+                Reason = "No changes since last snapshot.",
+            };
+        }
+
+        var capturedAt = DateTime.UtcNow;
+        var folderName = BuildFolderName(capturedAt, report.CombinedHash);
+        var snapshotFolder = Path.Combine(snapshotsRoot, folderName);
+
+        SnapshotStore.CopyFilesAtomically(
+            account.AccountFiles.Select(f => (f.FullPath, f.FileName)),
+            snapshotFolder);
+
+        var snapshot = BuildSnapshot(folderName, capturedAt, trigger, tag, report, account.Source.Kind.ToString());
+        manifest.Snapshots.Add(snapshot);
+        SnapshotIndex.Save(manifest, manifestPath);
+
+        return new BackupResult { Success = true, Snapshot = snapshot };
+    }
+
+    public IReadOnlyList<Snapshot> ListSlotSnapshots(string steamId32, string accountFolder, string slotName)
+    {
+        var path = SnapshotStore.GetManifestPath(
+            SnapshotStore.GetSlotSnapshotsRoot(_backupRoot, steamId32, accountFolder, slotName));
+        return SnapshotIndex.Load(path).Snapshots;
+    }
+
+    public IReadOnlyList<Snapshot> ListAccountSnapshots(string steamId32)
+    {
+        var path = SnapshotStore.GetManifestPath(
+            SnapshotStore.GetAccountSnapshotsRoot(_backupRoot, steamId32));
+        return SnapshotIndex.Load(path).Snapshots;
+    }
+
+    private static Snapshot? LatestSnapshot(SnapshotManifest manifest) =>
+        manifest.Snapshots.Count == 0 ? null : manifest.Snapshots.OrderByDescending(s => s.CapturedAtUtc).First();
+
+    private static Snapshot BuildSnapshot(
+        string folderName,
+        DateTime capturedAt,
+        SnapshotTrigger trigger,
+        string? tag,
+        IntegrityReport report,
+        string sourceKind) => new()
+    {
+        Id = folderName,
+        CapturedAtUtc = capturedAt,
+        Trigger = trigger,
+        Tag = tag,
+        CombinedHash = report.CombinedHash,
+        FileHashes = report.FileResults.ToDictionary(f => f.FileName, f => f.Sha256),
+        TotalBytes = report.TotalBytes,
+        Health = report.Health,
+        SourceKind = sourceKind,
+        FolderName = folderName,
+    };
+
+    // Format: 2026-05-06T14-30-12Z__a1b2c3 (colon-free for Windows compatibility)
+    private static string BuildFolderName(DateTime utc, string combinedHash)
+    {
+        var ts = utc.ToString("yyyy-MM-ddTHH-mm-ssZ");
+        const string prefix = "sha256:";
+        var hashStart = combinedHash.StartsWith(prefix, StringComparison.Ordinal)
+            ? prefix.Length : 0;
+        var available = combinedHash.Length - hashStart;
+        var shortHash = combinedHash.Substring(hashStart, Math.Min(6, available));
+        return $"{ts}__{shortHash}";
+    }
+}
