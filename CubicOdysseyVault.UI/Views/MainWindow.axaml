@@ -180,21 +180,20 @@
                         </TextBlock>
                         <Grid ColumnDefinitions="Auto,Auto,*">
                             <TextBlock Grid.Column="0" Classes="heading" Text="{Binding SourceLabel}" Margin="0,0,8,0"/>
-                            <Border Grid.Column="1" Classes="pill health-ok"
-                                    VerticalAlignment="Center"
-                                    IsVisible="{Binding IsHealthHealthy}">
-                                <TextBlock Text="HEALTHY"/>
-                            </Border>
-                            <Border Grid.Column="1" Classes="pill health-sus"
-                                    VerticalAlignment="Center"
-                                    IsVisible="{Binding IsHealthSuspicious}">
-                                <TextBlock Text="SUSPECT"/>
-                            </Border>
-                            <Border Grid.Column="1" Classes="pill health-bad"
-                                    VerticalAlignment="Center"
-                                    IsVisible="{Binding IsHealthCorrupted}">
-                                <TextBlock Text="CORRUPTED"/>
-                            </Border>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border Classes="pill health-ok"
+                                        IsVisible="{Binding IsHealthHealthy}">
+                                    <TextBlock Text="HEALTHY"/>
+                                </Border>
+                                <Border Classes="pill health-sus"
+                                        IsVisible="{Binding IsHealthSuspicious}">
+                                    <TextBlock Text="SUSPECT"/>
+                                </Border>
+                                <Border Classes="pill health-bad"
+                                        IsVisible="{Binding IsHealthCorrupted}">
+                                    <TextBlock Text="CORRUPTED"/>
+                                </Border>
+                            </StackPanel>
                         </Grid>
                         <TextBlock Classes="body-sm">
                             <Run Text="{Binding FileCount}"/><Run Text=" files · "/><Run Text="{Binding FormattedSize}"/>
