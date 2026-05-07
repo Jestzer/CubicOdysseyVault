@@ -16,57 +16,60 @@
                     HorizontalAlignment="Right"
                     Spacing="8"
                     Margin="0,16,0,0">
-            <Button Content="Cancel" MinWidth="80" Command="{Binding CancelCommand}" />
-            <Button Content="Delete"
+            <Button Classes="secondary" Content="Cancel" MinWidth="80" Command="{Binding CancelCommand}" />
+            <Button Classes="destructive"
+                    Content="Delete"
                     MinWidth="80"
-                    Command="{Binding ConfirmCommand}"
-                    Background="{StaticResource HealthCorruptedBrush}"
-                    Foreground="White" />
+                    Command="{Binding ConfirmCommand}" />
         </StackPanel>
 
         <StackPanel Spacing="10">
-            <TextBlock Text="Delete this snapshot?"
-                       Foreground="{StaticResource TextPrimaryBrush}"
-                       FontSize="18" FontWeight="SemiBold" />
+            <TextBlock Classes="heading"
+                       Text="Delete this snapshot?" />
 
-            <Border Background="{StaticResource SidebarBlockBrush}"
-                    BorderBrush="{StaticResource SeparatorBrush}"
-                    BorderThickness="1"
-                    CornerRadius="3"
-                    Padding="12">
+            <Border Classes="card" Padding="{StaticResource PadLg}">
                 <StackPanel Spacing="4">
-                    <TextBlock Foreground="{StaticResource TextPrimaryBrush}"
-                               FontSize="13" FontWeight="SemiBold"
-                               Text="{Binding CapturedAtText}" />
-                    <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
-                               FontSize="11">
-                        <Run Text="{Binding TriggerLabel}"/><Run Text=" · "/><Run Text="{Binding FormattedSize}"/>
-                    </TextBlock>
-                    <TextBlock Foreground="{StaticResource AccentBrush}"
-                               FontSize="11" FontStyle="Italic"
-                               Text="{Binding Tag}"
-                               IsVisible="{Binding IsTagged}" />
+                    <Grid ColumnDefinitions="80,*" RowDefinitions="Auto,4,Auto,4,Auto,4,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="CAPTURED" />
+                        <TextBlock Grid.Row="0" Grid.Column="1" Classes="body" Text="{Binding CapturedAtText}" />
+                        <TextBlock Grid.Row="2" Grid.Column="0" Classes="label" Text="TRIGGER" />
+                        <TextBlock Grid.Row="2" Grid.Column="1" Classes="body" Text="{Binding TriggerLabel}" />
+                        <TextBlock Grid.Row="4" Grid.Column="0" Classes="label" Text="SIZE" />
+                        <TextBlock Grid.Row="4" Grid.Column="1" Classes="numeric" Text="{Binding FormattedSize}" />
+                        <TextBlock Grid.Row="6" Grid.Column="0" Classes="label" Text="TAG"
+                                   IsVisible="{Binding IsTagged}" />
+                        <TextBlock Grid.Row="6" Grid.Column="1" Classes="body" Text="{Binding Tag}"
+                                   Foreground="{StaticResource AccentBrush}" FontStyle="Italic"
+                                   IsVisible="{Binding IsTagged}" />
+                    </Grid>
                 </StackPanel>
             </Border>
 
-            <Border Background="{StaticResource HealthSuspiciousBrush}"
-                    CornerRadius="3"
-                    Padding="10"
+            <Border Classes="card" Padding="{StaticResource PadMd}"
                     IsVisible="{Binding IsPreRestore}">
-                <TextBlock Foreground="Black" FontSize="11" TextWrapping="Wrap"
-                           Text="This is a Pre-restore snapshot — the only undo for the most recent restore. Deleting it makes that restore irreversible." />
+                <StackPanel Spacing="6">
+                    <Border Classes="pill health-sus" HorizontalAlignment="Left">
+                        <TextBlock Text="PRE-RESTORE"/>
+                    </Border>
+                    <TextBlock Classes="body-sm"
+                               TextWrapping="Wrap"
+                               Text="This is a Pre-restore snapshot — the only undo for the most recent restore. Deleting it makes that restore irreversible." />
+                </StackPanel>
             </Border>
 
-            <Border Background="{StaticResource HealthSuspiciousBrush}"
-                    CornerRadius="3"
-                    Padding="10"
+            <Border Classes="card" Padding="{StaticResource PadMd}"
                     IsVisible="{Binding IsTagged}">
-                <TextBlock Foreground="Black" FontSize="11" TextWrapping="Wrap"
-                           Text="This snapshot is tagged. Deleting removes the tag along with the snapshot." />
+                <StackPanel Spacing="6">
+                    <Border Classes="pill health-sus" HorizontalAlignment="Left">
+                        <TextBlock Text="TAGGED"/>
+                    </Border>
+                    <TextBlock Classes="body-sm"
+                               TextWrapping="Wrap"
+                               Text="This snapshot is tagged. Deleting removes the tag along with the snapshot." />
+                </StackPanel>
             </Border>
 
-            <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
-                       FontSize="11"
+            <TextBlock Classes="body"
                        TextWrapping="Wrap"
                        Text="The snapshot folder and its manifest entry will be removed. This cannot be undone." />
         </StackPanel>

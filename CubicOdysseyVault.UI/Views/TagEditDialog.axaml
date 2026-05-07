@@ -16,29 +16,24 @@
                     HorizontalAlignment="Right"
                     Spacing="8"
                     Margin="0,16,0,0">
-            <Button Content="Cancel" MinWidth="80" Command="{Binding CancelCommand}" />
-            <Button Content="Clear tag" MinWidth="90" Command="{Binding ClearCommand}" />
-            <Button Content="Save"
+            <Button Classes="secondary" Content="Cancel" MinWidth="80" Command="{Binding CancelCommand}" />
+            <Button Classes="secondary" Content="Clear tag" MinWidth="90" Command="{Binding ClearCommand}" />
+            <Button Classes="primary"
+                    Content="Save"
                     MinWidth="80"
-                    Command="{Binding SaveCommand}"
-                    Background="{StaticResource AccentBrush}"
-                    Foreground="White" />
+                    Command="{Binding SaveCommand}" />
         </StackPanel>
 
         <StackPanel Spacing="8">
-            <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
-                       FontSize="10" FontWeight="SemiBold"
+            <TextBlock Classes="label"
                        Text="{Binding SnapshotLabel}" />
-            <TextBlock Text="Tag this snapshot"
-                       Foreground="{StaticResource TextPrimaryBrush}"
-                       FontSize="16" FontWeight="SemiBold" />
-            <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
-                       FontSize="11"
+            <TextBlock Classes="heading"
+                       Text="Tag this snapshot" />
+            <TextBlock Classes="body-sm"
                        TextWrapping="Wrap"
                        Text="Tagged snapshots are kept forever, even Auto ones. Leave empty and click Save (or click Clear tag) to remove an existing tag." />
             <TextBox Text="{Binding TagValue}"
-                     Watermark="e.g. before-boss-fight"
-                     Margin="0,4,0,0" />
+                     Watermark="e.g. before-boss-fight" />
         </StackPanel>
     </DockPanel>
 </Window>
