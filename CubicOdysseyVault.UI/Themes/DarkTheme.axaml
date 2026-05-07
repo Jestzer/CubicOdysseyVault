@@ -14,7 +14,7 @@
   <Color x:Key="AccentColor">#FFC62828</Color>
   <Color x:Key="AccentColorSecondary">#FFE53935</Color>
   <Color x:Key="TextPrimary">#FFFFFFFF</Color>
-  <Color x:Key="TextSecondary">#FF989898</Color>
+  <Color x:Key="TextSecondary">#FFC5C5C5</Color>
   <Color x:Key="ActionHover">#FF3F3F41</Color>
   <Color x:Key="Separator">#FF46464A</Color>
 
