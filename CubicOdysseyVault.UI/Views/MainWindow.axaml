@@ -347,6 +347,7 @@
                             <DataTemplate x:DataType="vm:SaveSlotViewModel">
                                 <Border Width="220" Height="200"
                                         Classes="card"
+                                        ClipToBounds="True"
                                         Classes.selected="{Binding $parent[ListBoxItem].IsSelected}">
                                     <Grid>
                                         <DockPanel>
@@ -370,18 +371,20 @@
                                                     <Run Text="{Binding FileCount}"/><Run Text=" files"/>
                                                 </TextBlock>
                                                 <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4,0,0">
-                                                    <Border Grid.Column="0" Classes="pill health-ok"
-                                                            IsVisible="{Binding IsHealthHealthy}">
-                                                        <TextBlock Text="HEALTHY"/>
-                                                    </Border>
-                                                    <Border Grid.Column="0" Classes="pill health-sus"
-                                                            IsVisible="{Binding IsHealthSuspicious}">
-                                                        <TextBlock Text="SUSPECT"/>
-                                                    </Border>
-                                                    <Border Grid.Column="0" Classes="pill health-bad"
-                                                            IsVisible="{Binding IsHealthCorrupted}">
-                                                        <TextBlock Text="CORRUPTED"/>
-                                                    </Border>
+                                                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                                        <Border Classes="pill health-ok"
+                                                                IsVisible="{Binding IsHealthHealthy}">
+                                                            <TextBlock Text="HEALTHY"/>
+                                                        </Border>
+                                                        <Border Classes="pill health-sus"
+                                                                IsVisible="{Binding IsHealthSuspicious}">
+                                                            <TextBlock Text="SUSPECT"/>
+                                                        </Border>
+                                                        <Border Classes="pill health-bad"
+                                                                IsVisible="{Binding IsHealthCorrupted}">
+                                                            <TextBlock Text="CORRUPTED"/>
+                                                        </Border>
+                                                    </StackPanel>
                                                     <TextBlock Grid.Column="2" Classes="caption"
                                                                VerticalAlignment="Center"
                                                                Text="{Binding LastSnapshotText}"/>
