@@ -13,27 +13,38 @@
         <!-- Toolbar -->
         <Border DockPanel.Dock="Top"
                 Background="{StaticResource SidebarBackgroundBrush}"
-                BorderBrush="{StaticResource SeparatorBrush}"
+                BorderBrush="{StaticResource BorderSubtleBrush}"
                 BorderThickness="0,0,0,1"
-                Padding="12,8">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <Button Content="Refresh"
-                        Command="{Binding RefreshDiscoveryCommand}"
-                        IsEnabled="{Binding !IsDiscovering}"
-                        MinWidth="90" />
-                <Button Content="Settings"
-                        Command="{Binding OpenSettingsCommand}"
-                        MinWidth="90" />
-                <Button Content="Open backup folder"
-                        Command="{Binding OpenBackupFolderCommand}"
-                        MinWidth="150" />
-                <TextBlock Text="Scanning..."
-                           Foreground="{StaticResource TextSecondaryBrush}"
-                           FontSize="11"
+                Padding="{StaticResource PadLg}">
+            <DockPanel LastChildFill="False">
+                <Image DockPanel.Dock="Left"
+                       Source="/Assets/icon.png"
+                       Width="24" Height="24"
+                       Margin="0,0,8,0"/>
+                <TextBlock DockPanel.Dock="Left"
+                           Text="Cubic Odyssey Vault"
+                           Classes="body-emph"
+                           VerticalAlignment="Center"/>
+                <TextBlock DockPanel.Dock="Left"
+                           Text="Scanning..."
+                           Classes="caption"
                            VerticalAlignment="Center"
                            Margin="12,0,0,0"
-                           IsVisible="{Binding IsDiscovering}" />
-            </StackPanel>
+                           IsVisible="{Binding IsDiscovering}"/>
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{StaticResource SpaceSm}">
+                    <Button Content="Refresh"
+                            Classes="ghost"
+                            Command="{Binding RefreshDiscoveryCommand}"
+                            IsEnabled="{Binding !IsDiscovering}"/>
+                    <Button Content="Settings"
+                            Classes="ghost"
+                            Command="{Binding OpenSettingsCommand}"/>
+                    <Button Content="Open backup folder"
+                            Classes="ghost"
+                            Command="{Binding OpenBackupFolderCommand}"/>
+                </StackPanel>
+            </DockPanel>
         </Border>
 
         <!-- Status bar -->
