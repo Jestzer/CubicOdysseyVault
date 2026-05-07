@@ -43,4 +43,16 @@ public sealed class BackupCoordinator
         Path.Combine(
             SnapshotStore.GetSlotSnapshotsRoot(_backupRoot, slot.SteamId32, slot.AccountFolderName, slot.SlotName),
             snapshot.FolderName);
+
+    public Task<bool> UpdateSlotSnapshotTagAsync(SaveSlot slot, string snapshotId, string? newTag) =>
+        Task.Run(() => _service.UpdateSlotSnapshotTag(slot.SteamId32, slot.AccountFolderName, slot.SlotName, snapshotId, newTag));
+
+    public Task<bool> DeleteSlotSnapshotAsync(SaveSlot slot, string snapshotId) =>
+        Task.Run(() => _service.DeleteSlotSnapshot(slot.SteamId32, slot.AccountFolderName, slot.SlotName, snapshotId));
+
+    public Task<bool> UpdateAccountSnapshotTagAsync(SaveAccount account, string snapshotId, string? newTag) =>
+        Task.Run(() => _service.UpdateAccountSnapshotTag(account.SteamId32, snapshotId, newTag));
+
+    public Task<bool> DeleteAccountSnapshotAsync(SaveAccount account, string snapshotId) =>
+        Task.Run(() => _service.DeleteAccountSnapshot(account.SteamId32, snapshotId));
 }

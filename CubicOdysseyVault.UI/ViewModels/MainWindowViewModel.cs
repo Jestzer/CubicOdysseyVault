@@ -32,6 +32,8 @@ public partial class MainWindowViewModel : ViewModelBase
     public Func<AppSettings, Task<AppSettings?>>? ShowSettingsDialog { get; set; }
     public Func<AppSettings, int, int, int, Task<AppSettings?>>? ShowOnboardingDialog { get; set; }
     public Func<SaveSlot, Snapshot, string, Task<bool>>? ShowRestoreConfirmDialog { get; set; }
+    public Func<string, string?, Task<string?>>? ShowTagEditDialog { get; set; }
+    public Func<Snapshot, Task<bool>>? ShowDeleteConfirmDialog { get; set; }
     public Action<string>? OpenBackupFolderRequested { get; set; }
 
     public MainWindowViewModel()
@@ -103,6 +105,45 @@ public partial class MainWindowViewModel : ViewModelBase
         var path = EffectiveBackupRoot(_settings);
         try { Directory.CreateDirectory(path); } catch { /* opener may still find a parent */ }
         OpenBackupFolderRequested?.Invoke(path);
+    }
+
+    private async Task HandleSlotEditTagAsync(SaveSlot slot, Snapshot snapshot)
+    {
+        if (ShowTagEditDialog == null) return;
+        var label = $"Slot {slot.SlotName} / acct {slot.AccountFolderName} · {snapshot.CapturedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
+        var newTag = await ShowTagEditDialog(label, snapshot.Tag);
+        if (newTag == null) return;
+
+        var ok = await _coordinator.UpdateSlotSnapshotTagAsync(slot, snapshot.Id, newTag);
+        if (ok)
+        {
+            StatusMessage = string.IsNullOrWhiteSpace(newTag)
+                ? "Tag cleared."
+                : $"Tag set to '{newTag.Trim()}'.";
+            await RefreshDiscoveryAsync();
+        }
+        else
+        {
+            StatusMessage = "Failed to update tag — snapshot may have been pruned.";
+        }
+    }
+
+    private async Task HandleSlotDeleteAsync(SaveSlot slot, Snapshot snapshot)
+    {
+        if (ShowDeleteConfirmDialog == null) return;
+        var confirmed = await ShowDeleteConfirmDialog(snapshot);
+        if (!confirmed) return;
+
+        var ok = await _coordinator.DeleteSlotSnapshotAsync(slot, snapshot.Id);
+        if (ok)
+        {
+            StatusMessage = "Snapshot deleted.";
+            await RefreshDiscoveryAsync();
+        }
+        else
+        {
+            StatusMessage = "Failed to delete snapshot.";
+        }
     }
 
     private async Task HandleRestoreSlotAsync(SaveSlot slot, Snapshot snapshot)
@@ -284,6 +325,8 @@ public partial class MainWindowViewModel : ViewModelBase
                 var svm = GetOrAdd(byId, slot.SteamId32).AddSlot(slot);
                 svm.BackupRequested = (s, t) => coordinator.SnapshotSlotAsync(s, t);
                 svm.OnRestoreRequested = HandleRestoreSlotAsync;
+                svm.OnEditTagRequested = HandleSlotEditTagAsync;
+                svm.OnDeleteRequested = HandleSlotDeleteAsync;
                 svm.SetSnapshots(coordinator.ListSlotSnapshots(slot));
                 totalSlots++;
             }

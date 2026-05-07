@@ -1,0 +1,73 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CubicOdysseyVault.UI.ViewModels"
+        x:Class="CubicOdysseyVault.UI.Views.DeleteConfirmDialog"
+        x:DataType="vm:DeleteConfirmViewModel"
+        Title="Delete snapshot"
+        Width="460" Height="300"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource MainBackgroundBrush}">
+
+    <DockPanel Margin="20">
+        <StackPanel DockPanel.Dock="Bottom"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8"
+                    Margin="0,16,0,0">
+            <Button Content="Cancel" MinWidth="80" Command="{Binding CancelCommand}" />
+            <Button Content="Delete"
+                    MinWidth="80"
+                    Command="{Binding ConfirmCommand}"
+                    Background="{StaticResource HealthCorruptedBrush}"
+                    Foreground="White" />
+        </StackPanel>
+
+        <StackPanel Spacing="10">
+            <TextBlock Text="Delete this snapshot?"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       FontSize="18" FontWeight="SemiBold" />
+
+            <Border Background="{StaticResource SidebarBlockBrush}"
+                    BorderBrush="{StaticResource SeparatorBrush}"
+                    BorderThickness="1"
+                    CornerRadius="3"
+                    Padding="12">
+                <StackPanel Spacing="4">
+                    <TextBlock Foreground="{StaticResource TextPrimaryBrush}"
+                               FontSize="13" FontWeight="SemiBold"
+                               Text="{Binding CapturedAtText}" />
+                    <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="11">
+                        <Run Text="{Binding TriggerLabel}"/><Run Text=" · "/><Run Text="{Binding FormattedSize}"/>
+                    </TextBlock>
+                    <TextBlock Foreground="{StaticResource AccentBrush}"
+                               FontSize="11" FontStyle="Italic"
+                               Text="{Binding Tag}"
+                               IsVisible="{Binding IsTagged}" />
+                </StackPanel>
+            </Border>
+
+            <Border Background="{StaticResource HealthSuspiciousBrush}"
+                    CornerRadius="3"
+                    Padding="10"
+                    IsVisible="{Binding IsPreRestore}">
+                <TextBlock Foreground="Black" FontSize="11" TextWrapping="Wrap"
+                           Text="This is a Pre-restore snapshot — the only undo for the most recent restore. Deleting it makes that restore irreversible." />
+            </Border>
+
+            <Border Background="{StaticResource HealthSuspiciousBrush}"
+                    CornerRadius="3"
+                    Padding="10"
+                    IsVisible="{Binding IsTagged}">
+                <TextBlock Foreground="Black" FontSize="11" TextWrapping="Wrap"
+                           Text="This snapshot is tagged. Deleting removes the tag along with the snapshot." />
+            </Border>
+
+            <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                       FontSize="11"
+                       TextWrapping="Wrap"
+                       Text="The snapshot folder and its manifest entry will be removed. This cannot be undone." />
+        </StackPanel>
+    </DockPanel>
+</Window>

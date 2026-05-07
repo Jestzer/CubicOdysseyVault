@@ -23,6 +23,8 @@ public partial class MainWindow : Window
         vm.ShowSettingsDialog = ShowSettingsDialogAsync;
         vm.ShowOnboardingDialog = ShowOnboardingDialogAsync;
         vm.ShowRestoreConfirmDialog = ShowRestoreConfirmDialogAsync;
+        vm.ShowTagEditDialog = ShowTagEditDialogAsync;
+        vm.ShowDeleteConfirmDialog = ShowDeleteConfirmDialogAsync;
         vm.OpenBackupFolderRequested = OpenInFileManager;
 
         if (!vm.HasDiscovered && !vm.IsDiscovering)
@@ -49,6 +51,22 @@ public partial class MainWindow : Window
     {
         var vm = new RestoreConfirmViewModel(slot, snapshot, snapshotFolder);
         var dialog = new RestoreConfirmDialog { DataContext = vm };
+        await dialog.ShowDialog(this);
+        return vm.Confirmed;
+    }
+
+    private async Task<string?> ShowTagEditDialogAsync(string label, string? currentTag)
+    {
+        var vm = new TagEditViewModel(label, currentTag);
+        var dialog = new TagEditDialog { DataContext = vm };
+        await dialog.ShowDialog(this);
+        return vm.Confirmed ? vm.Result : null;
+    }
+
+    private async Task<bool> ShowDeleteConfirmDialogAsync(Snapshot snapshot)
+    {
+        var vm = new DeleteConfirmViewModel(snapshot);
+        var dialog = new DeleteConfirmDialog { DataContext = vm };
         await dialog.ShowDialog(this);
         return vm.Confirmed;
     }

@@ -121,6 +121,48 @@ public sealed class BackupService
         return SnapshotIndex.Load(path).Snapshots;
     }
 
+    // Tag updates: empty/whitespace clears the tag; otherwise the trimmed value
+    // is stored. Returns true on a successful update, false if the snapshot id
+    // wasn't in the manifest (which can happen if a concurrent prune ran).
+    public bool UpdateSlotSnapshotTag(string steamId32, string accountFolder, string slotName, string snapshotId, string? newTag) =>
+        UpdateTag(SnapshotStore.GetSlotSnapshotsRoot(_backupRoot, steamId32, accountFolder, slotName), snapshotId, newTag);
+
+    public bool UpdateAccountSnapshotTag(string steamId32, string snapshotId, string? newTag) =>
+        UpdateTag(SnapshotStore.GetAccountSnapshotsRoot(_backupRoot, steamId32), snapshotId, newTag);
+
+    public bool DeleteSlotSnapshot(string steamId32, string accountFolder, string slotName, string snapshotId) =>
+        DeleteSnapshotEntry(SnapshotStore.GetSlotSnapshotsRoot(_backupRoot, steamId32, accountFolder, slotName), snapshotId);
+
+    public bool DeleteAccountSnapshot(string steamId32, string snapshotId) =>
+        DeleteSnapshotEntry(SnapshotStore.GetAccountSnapshotsRoot(_backupRoot, steamId32), snapshotId);
+
+    private static bool UpdateTag(string snapshotsRoot, string snapshotId, string? newTag)
+    {
+        var manifestPath = SnapshotStore.GetManifestPath(snapshotsRoot);
+        var manifest = SnapshotIndex.Load(manifestPath);
+        var snap = manifest.Snapshots.FirstOrDefault(s => s.Id == snapshotId);
+        if (snap == null) return false;
+        snap.Tag = string.IsNullOrWhiteSpace(newTag) ? null : newTag.Trim();
+        SnapshotIndex.Save(manifest, manifestPath);
+        return true;
+    }
+
+    private static bool DeleteSnapshotEntry(string snapshotsRoot, string snapshotId)
+    {
+        var manifestPath = SnapshotStore.GetManifestPath(snapshotsRoot);
+        var manifest = SnapshotIndex.Load(manifestPath);
+        var snap = manifest.Snapshots.FirstOrDefault(s => s.Id == snapshotId);
+        if (snap == null) return false;
+
+        var folder = Path.Combine(snapshotsRoot, snap.FolderName);
+        try { if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true); }
+        catch { /* best effort — manifest still drops the reference */ }
+
+        manifest.Snapshots.Remove(snap);
+        SnapshotIndex.Save(manifest, manifestPath);
+        return true;
+    }
+
     private static Snapshot? LatestSnapshot(SnapshotManifest manifest) =>
         manifest.Snapshots.Count == 0 ? null : manifest.Snapshots.OrderByDescending(s => s.CapturedAtUtc).First();
 

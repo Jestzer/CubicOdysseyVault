@@ -168,8 +168,8 @@
                                             CornerRadius="3"
                                             Padding="10"
                                             Margin="0,0,0,6">
-                                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
-                                            <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="6">
+                                        <StackPanel Spacing="4">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
                                                 <Border CornerRadius="2" Padding="5,1" VerticalAlignment="Center"
                                                         Background="{StaticResource AccentBrush}"
                                                         IsVisible="{Binding IsTriggerManual}">
@@ -190,24 +190,20 @@
                                                            FontSize="12" FontWeight="SemiBold"
                                                            VerticalAlignment="Center" />
                                             </StackPanel>
-                                            <Button Grid.Row="0" Grid.Column="1" Grid.RowSpan="3"
-                                                    Content="Restore"
-                                                    VerticalAlignment="Center"
-                                                    MinWidth="80"
-                                                    Margin="6,0,0,0"
-                                                    Command="{Binding RestoreCommand}" />
-                                            <TextBlock Grid.Row="1" Grid.Column="0"
-                                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                                       FontSize="11"
-                                                       Margin="0,4,0,0">
+                                            <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                                                       FontSize="11">
                                                 <Run Text="{Binding FormattedSize}"/><Run Text=" · "/><Run Text="{Binding HealthLabel}"/>
                                             </TextBlock>
-                                            <TextBlock Grid.Row="2" Grid.Column="0"
-                                                       Text="{Binding Tag}"
+                                            <TextBlock Text="{Binding Tag}"
                                                        Foreground="{StaticResource AccentBrush}"
                                                        FontSize="11" FontStyle="Italic"
                                                        IsVisible="{Binding Tag, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                                        </Grid>
+                                            <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                                                <Button Content="Restore" MinWidth="80" Command="{Binding RestoreCommand}" />
+                                                <Button Content="Tag..." MinWidth="70" Command="{Binding EditTagCommand}" />
+                                                <Button Content="Delete" MinWidth="70" Command="{Binding DeleteCommand}" />
+                                            </StackPanel>
+                                        </StackPanel>
                                     </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

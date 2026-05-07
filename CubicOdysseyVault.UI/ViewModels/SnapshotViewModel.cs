@@ -25,6 +25,8 @@ public partial class SnapshotViewModel : ViewModelBase
     public int FileCount => Snapshot.FileHashes.Count;
 
     public Func<Snapshot, Task>? OnRestoreRequested { get; set; }
+    public Func<Snapshot, Task>? OnEditTagRequested { get; set; }
+    public Func<Snapshot, Task>? OnDeleteRequested { get; set; }
 
     public SnapshotViewModel(Snapshot snapshot)
     {
@@ -35,6 +37,18 @@ public partial class SnapshotViewModel : ViewModelBase
     private async Task Restore()
     {
         if (OnRestoreRequested != null) await OnRestoreRequested(Snapshot);
+    }
+
+    [RelayCommand]
+    private async Task EditTag()
+    {
+        if (OnEditTagRequested != null) await OnEditTagRequested(Snapshot);
+    }
+
+    [RelayCommand]
+    private async Task Delete()
+    {
+        if (OnDeleteRequested != null) await OnDeleteRequested(Snapshot);
     }
 
     private static string FormatBytes(long bytes)

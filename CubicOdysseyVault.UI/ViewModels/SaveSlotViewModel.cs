@@ -48,6 +48,8 @@ public partial class SaveSlotViewModel : ViewModelBase
 
     public Func<SaveSlot, SnapshotTrigger, Task<BackupResult>>? BackupRequested { get; set; }
     public Func<SaveSlot, Snapshot, Task>? OnRestoreRequested { get; set; }
+    public Func<SaveSlot, Snapshot, Task>? OnEditTagRequested { get; set; }
+    public Func<SaveSlot, Snapshot, Task>? OnDeleteRequested { get; set; }
 
     public string LastSnapshotText => Snapshots.Count == 0
         ? "Never backed up"
@@ -95,6 +97,10 @@ public partial class SaveSlotViewModel : ViewModelBase
     {
         svm.OnRestoreRequested = snap =>
             OnRestoreRequested?.Invoke(Slot, snap) ?? Task.CompletedTask;
+        svm.OnEditTagRequested = snap =>
+            OnEditTagRequested?.Invoke(Slot, snap) ?? Task.CompletedTask;
+        svm.OnDeleteRequested = snap =>
+            OnDeleteRequested?.Invoke(Slot, snap) ?? Task.CompletedTask;
         return svm;
     }
 

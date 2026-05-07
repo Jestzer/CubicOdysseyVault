@@ -1,0 +1,43 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CubicOdysseyVault.UI.ViewModels"
+        x:Class="CubicOdysseyVault.UI.Views.TagEditDialog"
+        x:DataType="vm:TagEditViewModel"
+        Title="Edit tag"
+        Width="440" Height="220"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource MainBackgroundBrush}">
+
+    <DockPanel Margin="20">
+        <StackPanel DockPanel.Dock="Bottom"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8"
+                    Margin="0,16,0,0">
+            <Button Content="Cancel" MinWidth="80" Command="{Binding CancelCommand}" />
+            <Button Content="Clear tag" MinWidth="90" Command="{Binding ClearCommand}" />
+            <Button Content="Save"
+                    MinWidth="80"
+                    Command="{Binding SaveCommand}"
+                    Background="{StaticResource AccentBrush}"
+                    Foreground="White" />
+        </StackPanel>
+
+        <StackPanel Spacing="8">
+            <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                       FontSize="10" FontWeight="SemiBold"
+                       Text="{Binding SnapshotLabel}" />
+            <TextBlock Text="Tag this snapshot"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       FontSize="16" FontWeight="SemiBold" />
+            <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                       FontSize="11"
+                       TextWrapping="Wrap"
+                       Text="Tagged snapshots are kept forever, even Auto ones. Leave empty and click Save (or click Clear tag) to remove an existing tag." />
+            <TextBox Text="{Binding TagValue}"
+                     Watermark="e.g. before-boss-fight"
+                     Margin="0,4,0,0" />
+        </StackPanel>
+    </DockPanel>
+</Window>
