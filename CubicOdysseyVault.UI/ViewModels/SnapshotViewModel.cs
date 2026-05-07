@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using CubicOdysseyVault.Core.Snapshots;
 
 namespace CubicOdysseyVault.UI.ViewModels;
@@ -23,9 +24,17 @@ public partial class SnapshotViewModel : ViewModelBase
     public string HealthLabel => Snapshot.Health.ToString();
     public int FileCount => Snapshot.FileHashes.Count;
 
+    public Func<Snapshot, Task>? OnRestoreRequested { get; set; }
+
     public SnapshotViewModel(Snapshot snapshot)
     {
         Snapshot = snapshot;
+    }
+
+    [RelayCommand]
+    private async Task Restore()
+    {
+        if (OnRestoreRequested != null) await OnRestoreRequested(Snapshot);
     }
 
     private static string FormatBytes(long bytes)

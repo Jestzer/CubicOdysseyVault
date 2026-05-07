@@ -3,6 +3,7 @@ using System.Linq;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CubicOdysseyVault.Core.Restore;
 using CubicOdysseyVault.Core.Saves;
 using CubicOdysseyVault.Core.Snapshots;
 using CubicOdysseyVault.Core.Steam;
@@ -30,6 +31,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public Func<AppSettings, Task<AppSettings?>>? ShowSettingsDialog { get; set; }
     public Func<AppSettings, int, int, int, Task<AppSettings?>>? ShowOnboardingDialog { get; set; }
+    public Func<SaveSlot, Snapshot, string, Task<bool>>? ShowRestoreConfirmDialog { get; set; }
     public Action<string>? OpenBackupFolderRequested { get; set; }
 
     public MainWindowViewModel()
@@ -53,7 +55,7 @@ public partial class MainWindowViewModel : ViewModelBase
             var manualRoots = _settings.ManualSourceRoots.ToList();
             var coordinator = _coordinator;
 
-            var result = await Task.Run(() => DiscoverSync(manualRoots, coordinator));
+            var result = await Task.Run(() => DiscoverSync(manualRoots, coordinator)).ConfigureAwait(true);
 
             SteamUsers.Clear();
             DiscoveredSources.Clear();
@@ -101,6 +103,44 @@ public partial class MainWindowViewModel : ViewModelBase
         var path = EffectiveBackupRoot(_settings);
         try { Directory.CreateDirectory(path); } catch { /* opener may still find a parent */ }
         OpenBackupFolderRequested?.Invoke(path);
+    }
+
+    private async Task HandleRestoreSlotAsync(SaveSlot slot, Snapshot snapshot)
+    {
+        if (ShowRestoreConfirmDialog == null) return;
+
+        var snapshotFolder = _coordinator.GetSlotSnapshotFolder(slot, snapshot);
+        var confirmed = await ShowRestoreConfirmDialog(slot, snapshot, snapshotFolder);
+        if (!confirmed) return;
+
+        // Pause watchers during the swap so they don't fire spurious Auto
+        // snapshots on the rename + copy events. RefreshDiscoveryAsync at
+        // the end restarts them.
+        StopWatchers();
+        StatusMessage = $"Restoring slot {slot.SlotName}...";
+
+        try
+        {
+            var result = await _coordinator.RestoreSlotAsync(slot, snapshot);
+            if (result.Success)
+            {
+                StatusMessage = $"Restored slot {slot.SlotName} from {snapshot.CapturedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss}.";
+            }
+            else if (result.BlockedByRunningGame)
+            {
+                StatusMessage = "Restore blocked: Cubic Odyssey is running.";
+            }
+            else
+            {
+                StatusMessage = $"Restore failed: {result.Reason}";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Restore failed: {ex.Message}";
+        }
+
+        await RefreshDiscoveryAsync();
     }
 
     partial void OnHasDiscoveredChanged(bool value) => UpdateShowEmptyState();
@@ -218,7 +258,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private static RetentionPolicy.Settings BuildRetention(AppSettings s) =>
         new(s.HourlySnapshotsKept, s.DailySnapshotsKept, s.WeeklySnapshotsKept);
 
-    private static DiscoveryResult DiscoverSync(IEnumerable<string> manualRoots, BackupCoordinator coordinator)
+    private DiscoveryResult DiscoverSync(IEnumerable<string> manualRoots, BackupCoordinator coordinator)
     {
         var roots = SteamLocator.Locate();
         var sources = SaveLocator.LocateSources(roots, manualRoots);
@@ -243,6 +283,7 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 var svm = GetOrAdd(byId, slot.SteamId32).AddSlot(slot);
                 svm.BackupRequested = (s, t) => coordinator.SnapshotSlotAsync(s, t);
+                svm.OnRestoreRequested = HandleRestoreSlotAsync;
                 svm.SetSnapshots(coordinator.ListSlotSnapshots(slot));
                 totalSlots++;
             }

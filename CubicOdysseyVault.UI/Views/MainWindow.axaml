@@ -168,8 +168,8 @@
                                             CornerRadius="3"
                                             Padding="10"
                                             Margin="0,0,0,6">
-                                        <StackPanel Spacing="4">
-                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+                                            <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="6">
                                                 <Border CornerRadius="2" Padding="5,1" VerticalAlignment="Center"
                                                         Background="{StaticResource AccentBrush}"
                                                         IsVisible="{Binding IsTriggerManual}">
@@ -190,15 +190,24 @@
                                                            FontSize="12" FontWeight="SemiBold"
                                                            VerticalAlignment="Center" />
                                             </StackPanel>
-                                            <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
-                                                       FontSize="11">
+                                            <Button Grid.Row="0" Grid.Column="1" Grid.RowSpan="3"
+                                                    Content="Restore"
+                                                    VerticalAlignment="Center"
+                                                    MinWidth="80"
+                                                    Margin="6,0,0,0"
+                                                    Command="{Binding RestoreCommand}" />
+                                            <TextBlock Grid.Row="1" Grid.Column="0"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       FontSize="11"
+                                                       Margin="0,4,0,0">
                                                 <Run Text="{Binding FormattedSize}"/><Run Text=" · "/><Run Text="{Binding HealthLabel}"/>
                                             </TextBlock>
-                                            <TextBlock Text="{Binding Tag}"
+                                            <TextBlock Grid.Row="2" Grid.Column="0"
+                                                       Text="{Binding Tag}"
                                                        Foreground="{StaticResource AccentBrush}"
                                                        FontSize="11" FontStyle="Italic"
                                                        IsVisible="{Binding Tag, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                                        </StackPanel>
+                                        </Grid>
                                     </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

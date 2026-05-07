@@ -1,131 +1,135 @@
-# Handoff — pick up from Phase 6
+# Handoff — pick up from Phase 7
 
-> Updated 2026-05-06 at the end of the watcher/retention phase.
+> Updated 2026-05-06 at the end of the restore phase.
 > Read this first when resuming work.
 
 ## Where we are
 
-**Phases 1–6 are done.** The solution builds clean
+**Phases 1–7 are done.** The solution builds clean
 (`dotnet build CubicOdysseyVault.sln` → 0 warnings, 0 errors),
-`dotnet test` passes 77 tests, and the desktop app runs auto-snapshots
-in the background as save files change, prunes old auto snapshots
-according to a tiered/generational retention policy, and keeps
-manual + tagged + pre-restore snapshots forever.
+`dotnet test` passes 82 tests, and the desktop app supports
+end-to-end restore: clicking Restore on a snapshot history row
+opens a confirm dialog with the snapshot's screenshot + metadata,
+checks whether Cubic Odyssey is running (refused if it is),
+captures a Pre-restore snapshot of the live state, then atomically
+swaps the live slot folder with the snapshot's contents — keeping
+the previous live state in `<slot>.replaced-<utc>/` for one
+generation of safety.
 
-What Phase 6 added:
+What Phase 7 added:
 
-- **`CubicOdysseyVault.Core/Snapshots/RetentionPolicy.cs`** — pure
-  function from a list of `Snapshot`s + a `Settings` record (defaults
-  24 hourly / 14 daily / 8 weekly) + a `nowUtc` to a `(Keep, Prune)`
-  plan. Algorithm: always keep `Manual`, `PreRestore`, and any
-  snapshot with a non-empty `Tag`; for the rest (Auto, untagged),
-  bucket each into hourly / daily / weekly tiers based on its UTC
-  age, keeping one per bucket per tier and dropping anything beyond
-  the weekly window.
-- **`CubicOdysseyVault.Core/Watching/SaveWatcher.cs` + `SlotKey.cs`** —
-  one `FileSystemWatcher` per `SaveSource.RootPath`, recursive,
-  filters `*.tmp`. Per-key debounce timers (one per `SlotKey`, one
-  per account-level SteamID32) coalesce rapid event bursts into a
-  single fire after the configured quiet window. Path classification
-  is exposed `internal static` for unit testing without touching
-  the filesystem.
-- **`BackupService` integration** — every successful snapshot is
-  followed by `RetentionPolicy.Apply` against the slot/account's
-  manifest; pruned folders are best-effort deleted; manifest is
-  rewritten with only the kept entries (then atomically saved as
-  before). `BackupService` ctor now takes an optional
-  `RetentionPolicy.Settings`; falls back to `Default` if null. Auto
-  triggers still abort on `Corrupted` slots so an interrupted
-  in-place write never gets promoted into the store.
-- **`SaveSlotViewModel.BackUpAsync(SnapshotTrigger)`** + parallel
-  method on `SaveAccountViewModel`: the `BackUpNow` `[RelayCommand]`
-  delegates to `BackUpAsync(Manual)` so the existing button keeps
-  working; the watcher path calls `BackUpAsync(Auto)` directly.
-  `BackupRequested` callback signature gained a trigger parameter.
-  Status text differentiates "Saved at HH:mm:ss" (manual) from
-  "Auto-saved at HH:mm:ss" (auto) for inline feedback.
-- **`MainWindowViewModel`** — owns a `List<SaveWatcher>`, starts them
-  after each successful `RefreshDiscoveryAsync` (skipping sources
-  with `Exists=false` or non-existent paths), tears them down at the
-  start of each refresh + on settings change. Watcher callbacks
-  marshal to the UI thread via `Dispatcher.UIThread.Post` and
-  resolve the matching VM by `(SteamID, accountFolder, slotName,
-  Source.Kind, Source.RootPath)`. Status bar appends "Watching N
-  sources." or "Watcher idle." after the discovery summary.
-- **`BackupCoordinator.Update(backupRoot, retention)`** replaces the
-  earlier `UpdateBackupRoot(string)`. Called from
-  `MainWindowViewModel.ApplySettings` so retention numbers entered
-  in the Settings dialog take effect on the next snapshot.
-- **Tests** — 9 new for `RetentionPolicy` (Manual/PreRestore/tagged
-  always kept; per-bucket dedup at hourly/daily/weekly tiers; ancient
-  Auto pruned); 10 new for `SaveWatcher` (path classification +
-  two FSW integration tests with real temp dirs and 150 ms debounce).
-  Total: 77.
+- **`CubicOdysseyVault.Core/Restore/RestoreResult.cs`** — flat result
+  record with `Success`, `BlockedByRunningGame`, `Reason`,
+  `PreRestoreSnapshot`, `ReplacedFolderPath`.
+- **`CubicOdysseyVault.Core/Restore/GameProcessDetector.cs`** —
+  `IsCubicOdysseyRunning()` returns true if Cubic Odyssey is in the
+  process list. Windows uses `Process.GetProcessesByName`; Linux/macOS
+  shells out to `pgrep -f CubicOdysseySteam` so wine-hosted processes
+  match by command line. 2 s timeout on the pgrep child; any error
+  returns false (we'd rather over-permit restore than lock the user
+  out from a probe failure).
+- **`CubicOdysseyVault.Core/Restore/RestoreService.cs`** —
+  `RestoreSlot(slot, snapshot, backupService)` orchestrates:
+  1. Game-running check (via injected `Func<bool>` for tests).
+  2. Pre-restore snapshot via the injected `BackupService`
+     (tagged `"Pre-restore"`, trigger `PreRestore` — both are in
+     retention's "always keep" set).
+  3. Stage the snapshot's files into `<slot>.restore-tmp/` via
+     `SnapshotStore.CopyFilesAtomically`.
+  4. `Directory.Move` live → `<slot>.replaced-<utc>/`, then staging
+     → live. If the second move fails, the original is moved back.
+  5. `CleanupPreviousReplaced` runs *before* the new replaced dir
+     is created — keeps one generation per PLAN.md, so the disk
+     doesn't accumulate replaced copies forever.
+- **`CubicOdysseyVault.UI/Services/BackupCoordinator`** — gained
+  `RestoreSlotAsync(slot, snapshot)` and `GetSlotSnapshotFolder(...)`
+  (the latter exposed so the confirm dialog can load
+  `screenshot.tga` from the snapshot folder).
+- **`CubicOdysseyVault.UI/ViewModels/SnapshotViewModel`** — gained
+  `OnRestoreRequested: Func<Snapshot, Task>?` and a `[RelayCommand]
+  Restore` that invokes it. Wired by `SaveSlotViewModel` whenever a
+  snapshot VM is constructed (initial discovery + insertions
+  after a successful BackUp).
+- **`CubicOdysseyVault.UI/ViewModels/SaveSlotViewModel`** — gained
+  `OnRestoreRequested: Func<SaveSlot, Snapshot, Task>?` set by
+  `MainWindowViewModel`; bridges the snapshot VM's callback to the
+  main orchestrator with the slot context attached.
+- **`CubicOdysseyVault.UI/ViewModels/RestoreConfirmViewModel`** —
+  carries snapshot metadata + decoded screenshot bitmap; runs
+  `GameProcessDetector.IsCubicOdysseyRunning()` in its ctor and
+  exposes `IsGameRunning`, `CanRestore`, plus a `RecheckGame`
+  command. `Confirm` and `Cancel` set `Confirmed` and invoke
+  `CloseRequested`.
+- **`CubicOdysseyVault.UI/Views/RestoreConfirmDialog.axaml(.cs)`** —
+  modal dialog with hero screenshot, snapshot detail grid, a yellow
+  warning panel when `IsGameRunning` is true (with Re-check button),
+  and the Restore / Cancel pair.
+- **`CubicOdysseyVault.UI/ViewModels/MainWindowViewModel`** —
+  `HandleRestoreSlotAsync(slot, snapshot)` shows the confirm dialog,
+  pauses watchers (so file-system events from the swap don't fire
+  spurious Auto snapshots), runs the coordinator's restore, then
+  calls `RefreshDiscoveryAsync` (which restarts watchers and
+  re-enumerates the slot's freshly restored file list).
+- **`MainWindow.axaml`** — snapshot history row gained a Restore
+  button on the right; layout reshaped from a vertical `StackPanel`
+  to a 2-column `Grid` so the button stays vertically centered next
+  to the metadata text.
+- **Tests** — 5 new in `RestoreServiceTests`: round-trip
+  restore, game-running blocked, pre-restore captures pre-state,
+  one-generation replaced cleanup, missing-snapshot graceful
+  failure. Total: 82.
 
-## What's next: Phase 7 (restore + pre-restore snapshot + game-running guard)
+## What's next: Phase 8 (tag / rename / delete snapshots)
 
-Per `docs/PLAN.md` item 7:
+Per `docs/PLAN.md` item 8:
 
-1. **`CubicOdysseyVault.Core/Restore/RestoreService.cs`** —
-   `RestoreAsync(slot, snapshot)` orchestrates:
-   1. Confirm dialog with snapshot screenshot + timestamp + tag (UI).
-   2. Detect whether `CubicOdysseySteam.exe` is running (`pgrep` on
-      Linux, `Process.GetProcessesByName` on Windows). Block restore
-      with a clear message if it is. Constants already has
-      `CubicOdysseyProcessName` for this.
-   3. Take a `PreRestore`-trigger snapshot of the current slot state
-      so the restore is itself undoable. PreRestore is in the
-      retention "always keep" bucket.
-   4. Stage snapshot files into a sibling `*.restore-tmp/` folder.
-   5. Atomic swap: rename live slot → `*.replaced-<timestamp>/`,
-      rename `*.restore-tmp/` → live slot folder.
-   6. Verify the restored slot passes `IntegrityChecker`.
-   7. Delete `*.replaced-*` after a configurable cooldown (default:
-      keep one generation).
-2. **UI**:
-   - Per-snapshot "Restore" button in the right detail panel.
-   - `RestoreConfirmDialog` showing the snapshot's screenshot,
-     timestamp, file count, total bytes, tag, and the source kind
-     it'll restore into. Two buttons: "Restore" / "Cancel".
-   - Status bar feedback during restore.
-   - Hard refusal dialog ("Close Cubic Odyssey first") if the
-     game-running check fires.
-3. **Tests**:
-   - `RestoreServiceTests` against synthetic snapshot folders
-     (skip the process-running check via injected predicate).
+1. UI for marking a snapshot with a tag — turns it into "always keep"
+   in the retention policy without needing a Manual trigger
+   re-snapshot.
+2. UI for deleting a snapshot (with a guard: can't delete the
+   only snapshot, optionally; or just confirm).
+3. UI for renaming the tag.
+4. Persistence flows through the existing manifest rewrite path.
+5. Optional: bulk operations (select multiple, delete all auto >
+   30 days, etc.).
 
-## Phase 6 design notes worth remembering
+Wiring lives in `BackupCoordinator` + `SnapshotViewModel`'s context
+menu or extra buttons in the history row.
 
-- **Retention boundaries are relative to `nowUtc`** — `RetentionPolicy.Apply`
-  takes the current time as a parameter rather than reading
-  `DateTime.UtcNow` internally. Makes tests deterministic. `BackupService`
-  passes `DateTime.UtcNow` at the call site.
-- **Bucket truncation** is UTC-anchored: hour bucket = floor to the
-  hour; day bucket = floor to midnight UTC; week bucket = previous
-  Sunday 00:00 UTC. Local-time anchoring would shift bucket
-  boundaries depending on the user's TZ — undesirable for a backup
-  tool.
-- **Watcher debounce is per-key**, not global. If slots 1 and 5 both
-  receive events at the same instant, two independent timers run.
-  Without per-key debounce, a busy slot could starve a quiet one.
-- **Path classification accepts both `/` and `\\`** — FSW always uses
-  one or the other depending on platform, but the parser is strict
-  about which without the cross-platform fix; consumers may pass
-  either form synthetically.
-- **Sources with `Exists=false` are skipped at watcher start** — the
-  Steam Cloud `remote/` source comes back from `SaveLocator` even
-  when the directory hasn't materialized yet; FSW would throw on
-  ctor for a missing path. Phase 8 or later may add a re-scan loop
-  that promotes such sources once they appear.
-- **Watcher events fire on thread-pool threads** — `MainWindowViewModel`
-  marshals to UI thread via `Dispatcher.UIThread.Post` before
-  invoking `BackUpAsync`, since the latter touches
-  `ObservableCollection`/`[ObservableProperty]` state.
-- **No double-fire guard for fast watcher restarts**: stopping +
-  restarting watchers (e.g. on settings save) drains the FSW's queue
-  but doesn't cancel in-flight debounce timers. In practice, harmless
-  — the worst case is a single Auto snapshot fires after a settings
-  change, which is the same as if the user had let the timer run.
+## Phase 7 design notes worth remembering
+
+- **Game-running check uses `pgrep -f`** on Linux because Cubic
+  Odyssey runs as a wine-hosted .exe — the literal process name
+  doesn't appear in the system process list. `pgrep -f` searches the
+  full command line, so `pgrep -f CubicOdysseySteam` matches the
+  wine wrapper plus argv. Any failure returns false — better to let
+  a restore through than lock it out from a failed probe.
+- **Pre-restore snapshot is always the first thing that runs**, even
+  before the game-running check completes its rollback path. The
+  PreRestore trigger is in retention's "always keep" set so the
+  rollback survives even on a slot that's hammered with auto
+  snapshots after a restore.
+- **One generation of `*.replaced-*`**: the policy is "delete any
+  prior `<slot>.replaced-*` siblings *before* renaming the new
+  one." So at most one replaced folder exists per slot at any time.
+  This is intentional rather than time-based pruning — it's simple,
+  predictable, and keeps disk usage bounded.
+- **Atomic swap fallback**: if the staging-→-live `Directory.Move`
+  fails (rare, but e.g. a file was opened during the swap), we
+  attempt to move the replaced folder back to live. Best effort —
+  the user might end up with a half-replaced state on truly weird
+  filesystems, but Linux tmpfs/ext4 and Windows NTFS handle the
+  rename swap atomically.
+- **Watchers paused during restore**: `MainWindowViewModel.StopWatchers()`
+  before the coordinator call; `RefreshDiscoveryAsync` at the end
+  rebuilds them. Without the pause, the rename + copy events would
+  fire the Auto trigger, which would create a redundant snapshot of
+  the just-restored content.
+- **`HandleRestoreSlotAsync` is set on every slot VM via
+  `OnRestoreRequested = HandleRestoreSlotAsync;`** — instance method
+  reference, captures `this` (the MainWindowViewModel). Since
+  `DiscoverSync` is now an instance method on the VM (not static),
+  this works cleanly.
 
 ## Style template — non-negotiable (unchanged)
 
@@ -151,37 +155,42 @@ HANDOFF.md                                          this file
 ../CubicOdysseyVault.Core/Snapshots/                Snapshot, SnapshotTrigger, SnapshotIndex, SnapshotStore, RetentionPolicy, BackupService, BackupResult
 ../CubicOdysseyVault.Core/Tga/                      TgaImage, TgaDecoder
 ../CubicOdysseyVault.Core/Watching/                 SlotKey, SaveWatcher
+../CubicOdysseyVault.Core/Restore/                  RestoreResult, GameProcessDetector, RestoreService
 ../CubicOdysseyVault.UI/Services/                   AppSettingsService, BackupCoordinator, TgaBitmapLoader
 ../CubicOdysseyVault.UI/Themes/DarkTheme.axaml      palette
-../CubicOdysseyVault.UI/ViewModels/                 MainWindow / SteamUser / SaveAccount / SaveSlot / SaveSource / Settings / Onboarding / Snapshot VMs
+../CubicOdysseyVault.UI/ViewModels/                 MainWindow / SteamUser / SaveAccount / SaveSlot / SaveSource / Settings / Onboarding / Snapshot / RestoreConfirm VMs
 ../CubicOdysseyVault.UI/Views/MainWindow.axaml      toolbar + sidebar + slot WrapPanel + right detail panel
 ../CubicOdysseyVault.UI/Views/SettingsDialog.axaml  modal config dialog
 ../CubicOdysseyVault.UI/Views/OnboardingDialog.axaml first-run wizard
+../CubicOdysseyVault.UI/Views/RestoreConfirmDialog.axaml restore confirm + game-running guard
 ../CubicOdysseyVault.Desktop/Program.cs             entry point
-../CubicOdysseyVault.Tests/                         77 tests, all passing
+../CubicOdysseyVault.Tests/                         82 tests, all passing
 ```
 
 ## Open assumptions still unvalidated
 
 - **Steam Cloud `remote/` layout**: still inferred from
-  `remotecache.vdf`. Validate when Cloud sync first materializes the
-  directory on this machine.
-- **TGA RLE variant**: only uncompressed RGB observed. `TgaDecoder`
-  rejects RLE explicitly; add an RLE branch if a save uses
-  image_type 0x0A.
+  `remotecache.vdf`. Validate when Cloud sync first materializes
+  the directory.
+- **TGA RLE variant**: only uncompressed RGB observed.
 - **Two-account-folder semantics (`0` vs `1`)**: only `0/` exists on
-  this account. Plan enumerates dynamically.
-- **Game-running detection on Linux/Proton**: Phase 7's check needs
-  to handle `wine` / `wineserver` processes hosting
-  `CubicOdysseySteam.exe`, not just a literal process named that.
-  `pgrep -f CubicOdysseySteam` is one option to test.
+  this account.
+- **`pgrep -f CubicOdysseySteam` matches the wine-hosted Cubic Odyssey
+  process** — confirmed by reasoning, not yet by an actual run on
+  this account. If the match fails on a real run, the restore guard
+  silently lets restores through. If it false-positives (e.g. on a
+  process that happens to contain "CubicOdysseySteam" in its
+  command line for unrelated reasons), restores are blocked. Verify
+  next time the user has the game open.
 
-## Things deferred from Phase 6
+## Things deferred
 
-- **Live "current state" health** (vs. "latest snapshot health"):
-  could surface as a "Re-check" button. Not blocking any later
-  phase.
-- **Steam display name resolution** from `localconfig.vdf`: still
-  not done; sidebar shows raw `SteamID32`.
-- **Promote Steam-Cloud sources once `remote/` appears**: requires
-  a periodic re-scan or a watcher on the parent directory. Phase 8+.
+- **Account-level restore**: only slot restore is wired in Phase 7;
+  account-level snapshots can be inspected but not yet restored
+  through the UI. PLAN.md doesn't explicitly call account restore
+  out, but consistency suggests adding it in Phase 8 alongside the
+  tag / rename / delete work.
+- **Steam display name** from `localconfig.vdf`: still raw SteamID32.
+- **Promote Cloud sources once `remote/` materializes**: needs a
+  re-scan or watcher on the parent.
+- **Live "current state" health** vs "latest snapshot health".

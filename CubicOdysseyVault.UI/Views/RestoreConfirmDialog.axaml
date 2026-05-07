@@ -1,0 +1,99 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CubicOdysseyVault.UI.ViewModels"
+        x:Class="CubicOdysseyVault.UI.Views.RestoreConfirmDialog"
+        x:DataType="vm:RestoreConfirmViewModel"
+        Title="Restore snapshot"
+        Width="540" Height="600"
+        MinWidth="500" MinHeight="540"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource MainBackgroundBrush}">
+
+    <DockPanel Margin="20">
+        <!-- Buttons (bottom) -->
+        <StackPanel DockPanel.Dock="Bottom"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8"
+                    Margin="0,16,0,0">
+            <Button Content="Cancel" MinWidth="90" Command="{Binding CancelCommand}" />
+            <Button Content="Restore"
+                    MinWidth="90"
+                    Command="{Binding ConfirmRestoreCommand}"
+                    IsEnabled="{Binding CanRestore}"
+                    Background="{StaticResource AccentBrush}"
+                    Foreground="White" />
+        </StackPanel>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="14">
+                <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="10" FontWeight="SemiBold"
+                           Text="{Binding SlotHeader}" />
+                <TextBlock Text="Restore this snapshot?"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           FontSize="20" FontWeight="SemiBold" />
+
+                <Border CornerRadius="4"
+                        BorderBrush="{StaticResource SeparatorBrush}"
+                        BorderThickness="1"
+                        ClipToBounds="True"
+                        Background="{StaticResource SidebarBackgroundBrush}">
+                    <Image Source="{Binding Screenshot}"
+                           Stretch="Uniform"
+                           MaxHeight="220" />
+                </Border>
+
+                <Border Background="{StaticResource SidebarBlockBrush}"
+                        BorderBrush="{StaticResource SeparatorBrush}"
+                        BorderThickness="1"
+                        CornerRadius="3"
+                        Padding="12">
+                    <StackPanel Spacing="6">
+                        <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,4,Auto,4,Auto,4,Auto,4,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Captured" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding CapturedAtText}" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" />
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Trigger" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding TriggerLabel}" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" />
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Source" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" />
+                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SourceLabel}" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" />
+                            <TextBlock Grid.Row="6" Grid.Column="0" Text="Contents" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" />
+                            <TextBlock Grid.Row="6" Grid.Column="1" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12">
+                                <Run Text="{Binding FileCount}" /><Run Text=" files · " /><Run Text="{Binding FormattedSize}" />
+                            </TextBlock>
+                            <TextBlock Grid.Row="8" Grid.Column="0" Text="Tag" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"
+                                       IsVisible="{Binding Tag, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                            <TextBlock Grid.Row="8" Grid.Column="1" Text="{Binding Tag}" Foreground="{StaticResource AccentBrush}" FontSize="12" FontStyle="Italic"
+                                       IsVisible="{Binding Tag, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Foreground="{StaticResource TextPrimaryBrush}"
+                           FontSize="12"
+                           TextWrapping="Wrap">
+                    The live slot will be replaced with this snapshot's contents. The current
+                    state is captured as a Pre-restore snapshot first, so this restore is
+                    itself undoable.
+                </TextBlock>
+
+                <Border Background="{StaticResource HealthSuspiciousBrush}"
+                        CornerRadius="3"
+                        Padding="12"
+                        IsVisible="{Binding IsGameRunning}">
+                    <StackPanel Spacing="6">
+                        <TextBlock Foreground="Black" FontSize="12" FontWeight="SemiBold"
+                                   Text="Cubic Odyssey is currently running" />
+                        <TextBlock Foreground="Black" FontSize="11" TextWrapping="Wrap"
+                                   Text="Restore is blocked until the game closes — restoring while it has the save open would race the swap and could corrupt the file." />
+                        <Button Content="Re-check"
+                                Command="{Binding RecheckGameCommand}"
+                                HorizontalAlignment="Left"
+                                Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

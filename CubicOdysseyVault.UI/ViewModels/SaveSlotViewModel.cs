@@ -47,6 +47,7 @@ public partial class SaveSlotViewModel : ViewModelBase
     [ObservableProperty] private string? _backupStatus;
 
     public Func<SaveSlot, SnapshotTrigger, Task<BackupResult>>? BackupRequested { get; set; }
+    public Func<SaveSlot, Snapshot, Task>? OnRestoreRequested { get; set; }
 
     public string LastSnapshotText => Snapshots.Count == 0
         ? "Never backed up"
@@ -79,7 +80,7 @@ public partial class SaveSlotViewModel : ViewModelBase
     {
         Snapshots.Clear();
         foreach (var s in snapshots.OrderByDescending(s => s.CapturedAtUtc))
-            Snapshots.Add(new SnapshotViewModel(s));
+            Snapshots.Add(WireSnapshot(new SnapshotViewModel(s)));
         OnPropertyChanged(nameof(LastSnapshotText));
         OnPropertyChanged(nameof(SnapshotCount));
         OnPropertyChanged(nameof(LatestHealth));
@@ -88,6 +89,13 @@ public partial class SaveSlotViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsHealthSuspicious));
         OnPropertyChanged(nameof(IsHealthCorrupted));
         OnPropertyChanged(nameof(IsHealthUnchecked));
+    }
+
+    private SnapshotViewModel WireSnapshot(SnapshotViewModel svm)
+    {
+        svm.OnRestoreRequested = snap =>
+            OnRestoreRequested?.Invoke(Slot, snap) ?? Task.CompletedTask;
+        return svm;
     }
 
     [RelayCommand(CanExecute = nameof(CanBackUp))]
@@ -109,7 +117,7 @@ public partial class SaveSlotViewModel : ViewModelBase
                 }
                 else if (result.Snapshot != null)
                 {
-                    Snapshots.Insert(0, new SnapshotViewModel(result.Snapshot));
+                    Snapshots.Insert(0, WireSnapshot(new SnapshotViewModel(result.Snapshot)));
                     OnPropertyChanged(nameof(LastSnapshotText));
                     OnPropertyChanged(nameof(SnapshotCount));
                     OnPropertyChanged(nameof(LatestHealth));

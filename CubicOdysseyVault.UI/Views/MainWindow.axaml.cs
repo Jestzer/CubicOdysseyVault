@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Avalonia.Controls;
+using CubicOdysseyVault.Core.Saves;
+using CubicOdysseyVault.Core.Snapshots;
 using CubicOdysseyVault.UI.Services;
 using CubicOdysseyVault.UI.ViewModels;
 
@@ -20,6 +22,7 @@ public partial class MainWindow : Window
 
         vm.ShowSettingsDialog = ShowSettingsDialogAsync;
         vm.ShowOnboardingDialog = ShowOnboardingDialogAsync;
+        vm.ShowRestoreConfirmDialog = ShowRestoreConfirmDialogAsync;
         vm.OpenBackupFolderRequested = OpenInFileManager;
 
         if (!vm.HasDiscovered && !vm.IsDiscovering)
@@ -40,6 +43,14 @@ public partial class MainWindow : Window
         var dialog = new OnboardingDialog { DataContext = vm };
         await dialog.ShowDialog(this);
         return vm.WasCompleted ? vm.ApplyTo(current) : null;
+    }
+
+    private async Task<bool> ShowRestoreConfirmDialogAsync(SaveSlot slot, Snapshot snapshot, string snapshotFolder)
+    {
+        var vm = new RestoreConfirmViewModel(slot, snapshot, snapshotFolder);
+        var dialog = new RestoreConfirmDialog { DataContext = vm };
+        await dialog.ShowDialog(this);
+        return vm.Confirmed;
     }
 
     private static void OpenInFileManager(string path)
