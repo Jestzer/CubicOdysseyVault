@@ -46,7 +46,7 @@ public partial class SaveSlotViewModel : ViewModelBase
 
     [ObservableProperty] private string? _backupStatus;
 
-    public Func<SaveSlot, Task<BackupResult>>? BackupRequested { get; set; }
+    public Func<SaveSlot, SnapshotTrigger, Task<BackupResult>>? BackupRequested { get; set; }
 
     public string LastSnapshotText => Snapshots.Count == 0
         ? "Never backed up"
@@ -91,14 +91,16 @@ public partial class SaveSlotViewModel : ViewModelBase
     }
 
     [RelayCommand(CanExecute = nameof(CanBackUp))]
-    private async Task BackUpNow()
+    private Task BackUpNow() => BackUpAsync(SnapshotTrigger.Manual);
+
+    public async Task BackUpAsync(SnapshotTrigger trigger)
     {
-        if (BackupRequested == null) return;
+        if (BackupRequested == null || IsBackingUp) return;
         IsBackingUp = true;
-        BackupStatus = "Backing up...";
+        BackupStatus = trigger == SnapshotTrigger.Auto ? "Auto-backing up..." : "Backing up...";
         try
         {
-            var result = await BackupRequested(Slot);
+            var result = await BackupRequested(Slot, trigger);
             if (result.Success)
             {
                 if (result.Skipped)
@@ -112,7 +114,12 @@ public partial class SaveSlotViewModel : ViewModelBase
                     OnPropertyChanged(nameof(SnapshotCount));
                     OnPropertyChanged(nameof(LatestHealth));
                     OnPropertyChanged(nameof(LatestHealthLabel));
-                    BackupStatus = $"Saved at {result.Snapshot.CapturedAtUtc.ToLocalTime():HH:mm:ss}";
+                    OnPropertyChanged(nameof(IsHealthHealthy));
+                    OnPropertyChanged(nameof(IsHealthSuspicious));
+                    OnPropertyChanged(nameof(IsHealthCorrupted));
+                    OnPropertyChanged(nameof(IsHealthUnchecked));
+                    BackupStatus = (trigger == SnapshotTrigger.Auto ? "Auto-saved" : "Saved")
+                        + $" at {result.Snapshot.CapturedAtUtc.ToLocalTime():HH:mm:ss}";
                 }
             }
             else

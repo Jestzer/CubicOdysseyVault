@@ -32,7 +32,7 @@ public partial class SaveAccountViewModel : ViewModelBase
 
     [ObservableProperty] private string? _backupStatus;
 
-    public Func<SaveAccount, Task<BackupResult>>? BackupRequested { get; set; }
+    public Func<SaveAccount, SnapshotTrigger, Task<BackupResult>>? BackupRequested { get; set; }
 
     public string LastSnapshotText => Snapshots.Count == 0
         ? "Never backed up"
@@ -55,14 +55,16 @@ public partial class SaveAccountViewModel : ViewModelBase
     }
 
     [RelayCommand(CanExecute = nameof(CanBackUp))]
-    private async Task BackUpNow()
+    private Task BackUpNow() => BackUpAsync(SnapshotTrigger.Manual);
+
+    public async Task BackUpAsync(SnapshotTrigger trigger)
     {
-        if (BackupRequested == null) return;
+        if (BackupRequested == null || IsBackingUp) return;
         IsBackingUp = true;
-        BackupStatus = "Backing up...";
+        BackupStatus = trigger == SnapshotTrigger.Auto ? "Auto-backing up..." : "Backing up...";
         try
         {
-            var result = await BackupRequested(Account);
+            var result = await BackupRequested(Account, trigger);
             if (result.Success)
             {
                 if (result.Skipped)
@@ -74,7 +76,8 @@ public partial class SaveAccountViewModel : ViewModelBase
                     Snapshots.Insert(0, new SnapshotViewModel(result.Snapshot));
                     OnPropertyChanged(nameof(LastSnapshotText));
                     OnPropertyChanged(nameof(SnapshotCount));
-                    BackupStatus = $"Saved at {result.Snapshot.CapturedAtUtc.ToLocalTime():HH:mm:ss}";
+                    BackupStatus = (trigger == SnapshotTrigger.Auto ? "Auto-saved" : "Saved")
+                        + $" at {result.Snapshot.CapturedAtUtc.ToLocalTime():HH:mm:ss}";
                 }
             }
             else

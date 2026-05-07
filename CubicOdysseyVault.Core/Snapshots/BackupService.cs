@@ -7,10 +7,12 @@ namespace CubicOdysseyVault.Core.Snapshots;
 public sealed class BackupService
 {
     private readonly string _backupRoot;
+    private readonly RetentionPolicy.Settings _retention;
 
-    public BackupService(string backupRoot)
+    public BackupService(string backupRoot, RetentionPolicy.Settings? retention = null)
     {
         _backupRoot = backupRoot;
+        _retention = retention ?? RetentionPolicy.Settings.Default;
     }
 
     public BackupResult SnapshotSlot(SaveSlot slot, SnapshotTrigger trigger, string? tag = null)
@@ -45,6 +47,7 @@ public sealed class BackupService
 
         var snapshot = BuildSnapshot(folderName, capturedAt, trigger, tag, report, slot.Source.Kind.ToString());
         manifest.Snapshots.Add(snapshot);
+        ApplyRetention(manifest, snapshotsRoot);
         SnapshotIndex.Save(manifest, manifestPath);
 
         return new BackupResult { Success = true, Snapshot = snapshot };
@@ -81,9 +84,27 @@ public sealed class BackupService
 
         var snapshot = BuildSnapshot(folderName, capturedAt, trigger, tag, report, account.Source.Kind.ToString());
         manifest.Snapshots.Add(snapshot);
+        ApplyRetention(manifest, snapshotsRoot);
         SnapshotIndex.Save(manifest, manifestPath);
 
         return new BackupResult { Success = true, Snapshot = snapshot };
+    }
+
+    // Prune old auto snapshots from disk and update the manifest in-place to
+    // hold only the kept entries. Deletes are best-effort: if a folder can't
+    // be removed, the manifest still drops the reference so we don't keep a
+    // dangling pointer.
+    private void ApplyRetention(SnapshotManifest manifest, string snapshotsRoot)
+    {
+        var plan = RetentionPolicy.Apply(manifest.Snapshots, _retention, DateTime.UtcNow);
+        foreach (var pruned in plan.Prune)
+        {
+            var folder = Path.Combine(snapshotsRoot, pruned.FolderName);
+            try { if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true); }
+            catch { /* best effort */ }
+        }
+        manifest.Snapshots.Clear();
+        foreach (var keep in plan.Keep) manifest.Snapshots.Add(keep);
     }
 
     public IReadOnlyList<Snapshot> ListSlotSnapshots(string steamId32, string accountFolder, string slotName)

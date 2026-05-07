@@ -7,14 +7,14 @@ public sealed class BackupCoordinator
 {
     private BackupService _service;
 
-    public BackupCoordinator(string backupRoot)
+    public BackupCoordinator(string backupRoot, RetentionPolicy.Settings? retention = null)
     {
-        _service = new BackupService(backupRoot);
+        _service = new BackupService(backupRoot, retention);
     }
 
-    public void UpdateBackupRoot(string newRoot)
+    public void Update(string backupRoot, RetentionPolicy.Settings? retention = null)
     {
-        _service = new BackupService(newRoot);
+        _service = new BackupService(backupRoot, retention);
     }
 
     public Task<BackupResult> SnapshotSlotAsync(SaveSlot slot, SnapshotTrigger trigger, string? tag = null) =>

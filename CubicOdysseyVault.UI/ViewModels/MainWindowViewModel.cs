@@ -1,10 +1,12 @@
 using System.Collections.ObjectModel;
 using System.Linq;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CubicOdysseyVault.Core.Saves;
 using CubicOdysseyVault.Core.Snapshots;
 using CubicOdysseyVault.Core.Steam;
+using CubicOdysseyVault.Core.Watching;
 using CubicOdysseyVault.UI.Services;
 
 namespace CubicOdysseyVault.UI.ViewModels;
@@ -23,6 +25,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private AppSettings _settings;
     private bool _skipOnboardingThisSession;
     private BackupCoordinator _coordinator;
+    private readonly List<SaveWatcher> _watchers = new();
+    private List<SaveSource> _activeSources = new();
 
     public Func<AppSettings, Task<AppSettings?>>? ShowSettingsDialog { get; set; }
     public Func<AppSettings, int, int, int, Task<AppSettings?>>? ShowOnboardingDialog { get; set; }
@@ -31,7 +35,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel()
     {
         _settings = AppSettingsService.Load();
-        _coordinator = new BackupCoordinator(EffectiveBackupRoot(_settings));
+        _coordinator = new BackupCoordinator(EffectiveBackupRoot(_settings), BuildRetention(_settings));
     }
 
     [RelayCommand]
@@ -41,6 +45,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         IsDiscovering = true;
         StatusMessage = "Scanning for Cubic Odyssey saves...";
+        StopWatchers();
 
         try
         {
@@ -58,7 +63,9 @@ public partial class MainWindowViewModel : ViewModelBase
             SelectedSteamUser = SteamUsers.FirstOrDefault();
             HasDiscovered = true;
             UpdateShowEmptyState();
-            StatusMessage = result.Summary;
+            _activeSources = result.RawSources.ToList();
+            StartWatchers(_activeSources);
+            StatusMessage = BuildSummary(result);
 
             if (!_settings.HasCompletedOnboarding && !_skipOnboardingThisSession)
                 await TryShowOnboarding(result.Users.Count, result.TotalSlots, result.ActiveSources);
@@ -121,13 +128,95 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         _settings = updated;
         AppSettingsService.Save(_settings);
-        _coordinator.UpdateBackupRoot(EffectiveBackupRoot(_settings));
+        _coordinator.Update(EffectiveBackupRoot(_settings), BuildRetention(_settings));
+    }
+
+    private void StartWatchers(IReadOnlyList<SaveSource> sources)
+    {
+        StopWatchers();
+        if (!_settings.WatcherEnabled) return;
+
+        foreach (var src in sources)
+        {
+            if (!src.Exists || !Directory.Exists(src.RootPath)) continue;
+
+            try
+            {
+                var capturedSrc = src;
+                var w = new SaveWatcher(
+                    capturedSrc,
+                    TimeSpan.FromSeconds(Math.Max(1, _settings.WatcherDebounceSeconds)),
+                    onSlotChanged: key => OnWatcherSlotEvent(capturedSrc, key),
+                    onAccountChanged: id => OnWatcherAccountEvent(capturedSrc, id));
+                w.Start();
+                _watchers.Add(w);
+            }
+            catch
+            {
+                // FSW can fail on certain filesystems (network mounts, etc.). Skip silently.
+            }
+        }
+    }
+
+    private void StopWatchers()
+    {
+        foreach (var w in _watchers) w.Dispose();
+        _watchers.Clear();
+    }
+
+    private void OnWatcherSlotEvent(SaveSource source, SlotKey key)
+    {
+        Dispatcher.UIThread.Post(async () =>
+        {
+            var vm = SteamUsers
+                .FirstOrDefault(u => u.SteamId32 == key.SteamId32)?
+                .Slots.FirstOrDefault(s =>
+                    s.Slot.AccountFolderName == key.AccountFolder &&
+                    s.Slot.SlotName == key.SlotName &&
+                    s.Slot.Source.Kind == source.Kind &&
+                    s.Slot.Source.RootPath == source.RootPath);
+            if (vm == null) return;
+            await vm.BackUpAsync(SnapshotTrigger.Auto);
+        });
+    }
+
+    private void OnWatcherAccountEvent(SaveSource source, string steamId)
+    {
+        Dispatcher.UIThread.Post(async () =>
+        {
+            var vm = SteamUsers
+                .FirstOrDefault(u => u.SteamId32 == steamId)?
+                .Accounts.FirstOrDefault(a =>
+                    a.Account.Source.Kind == source.Kind &&
+                    a.Account.Source.RootPath == source.RootPath);
+            if (vm == null) return;
+            await vm.BackUpAsync(SnapshotTrigger.Auto);
+        });
+    }
+
+    private string BuildSummary(DiscoveryResult result)
+    {
+        var baseMsg = result.Users.Count == 0
+            ? "No Cubic Odyssey saves discovered yet."
+            : $"Found {result.Users.Count} Steam user{Plural(result.Users.Count)}, " +
+              $"{result.TotalSlots} slot{Plural(result.TotalSlots)} across " +
+              $"{result.ActiveSources} source{Plural(result.ActiveSources)}.";
+
+        if (_settings.WatcherEnabled && _watchers.Count > 0)
+            baseMsg += $" Watching {_watchers.Count} source{Plural(_watchers.Count)}.";
+        else if (_settings.WatcherEnabled)
+            baseMsg += " Watcher idle.";
+
+        return baseMsg;
     }
 
     private static string EffectiveBackupRoot(AppSettings settings) =>
         string.IsNullOrEmpty(settings.BackupRootPath)
             ? AppSettingsService.GetSuggestedBackupRoot()
             : settings.BackupRootPath;
+
+    private static RetentionPolicy.Settings BuildRetention(AppSettings s) =>
+        new(s.HourlySnapshotsKept, s.DailySnapshotsKept, s.WeeklySnapshotsKept);
 
     private static DiscoveryResult DiscoverSync(IEnumerable<string> manualRoots, BackupCoordinator coordinator)
     {
@@ -146,14 +235,14 @@ public partial class MainWindowViewModel : ViewModelBase
             foreach (var acct in layout.Accounts)
             {
                 var avm = GetOrAdd(byId, acct.SteamId32).AddAccount(acct);
-                avm.BackupRequested = a => coordinator.SnapshotAccountAsync(a, SnapshotTrigger.Manual);
+                avm.BackupRequested = (a, t) => coordinator.SnapshotAccountAsync(a, t);
                 avm.SetSnapshots(coordinator.ListAccountSnapshots(acct));
             }
 
             foreach (var slot in layout.Slots)
             {
                 var svm = GetOrAdd(byId, slot.SteamId32).AddSlot(slot);
-                svm.BackupRequested = s => coordinator.SnapshotSlotAsync(s, SnapshotTrigger.Manual);
+                svm.BackupRequested = (s, t) => coordinator.SnapshotSlotAsync(s, t);
                 svm.SetSnapshots(coordinator.ListSlotSnapshots(slot));
                 totalSlots++;
             }
@@ -162,13 +251,7 @@ public partial class MainWindowViewModel : ViewModelBase
         var users = byId.Values.ToList();
         var sourceVms = sources.Select(s => new SaveSourceViewModel(s)).ToList();
 
-        string summary = users.Count == 0
-            ? "No Cubic Odyssey saves discovered yet."
-            : $"Found {users.Count} Steam user{Plural(users.Count)}, " +
-              $"{totalSlots} slot{Plural(totalSlots)} across " +
-              $"{activeSources} source{Plural(activeSources)}.";
-
-        return new DiscoveryResult(users, sourceVms, summary, totalSlots, activeSources);
+        return new DiscoveryResult(users, sourceVms, sources, totalSlots, activeSources);
     }
 
     private static SteamUserViewModel GetOrAdd(Dictionary<string, SteamUserViewModel> dict, string id)
@@ -186,7 +269,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private sealed record DiscoveryResult(
         List<SteamUserViewModel> Users,
         List<SaveSourceViewModel> Sources,
-        string Summary,
+        IReadOnlyList<SaveSource> RawSources,
         int TotalSlots,
         int ActiveSources);
 }
