@@ -228,9 +228,65 @@
                                    TextWrapping="Wrap"
                                    IsVisible="{Binding !SnapshotCount}"/>
 
-                        <!-- Snapshot rows live here — replaced in Task 9 -->
-                        <ItemsControl ItemsSource="{Binding Snapshots}"
-                                      x:Name="SnapshotHistoryItems"/>
+                        <!-- Snapshot rows -->
+                        <ItemsControl ItemsSource="{Binding Snapshots}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SnapshotViewModel">
+                                    <Border Classes="list-row" BorderBrush="{StaticResource BorderSubtleBrush}">
+                                        <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+
+                                            <!-- Pills (health + trigger) wrapped to avoid phantom column width -->
+                                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Classes="pill health-ok">
+                                                    <TextBlock Text="HEALTHY"/>
+                                                </Border>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,0,0">
+                                                <Border Classes="pill trigger-manual"
+                                                        IsVisible="{Binding IsTriggerManual}">
+                                                    <TextBlock Text="MANUAL"/>
+                                                </Border>
+                                                <Border Classes="pill trigger-auto"
+                                                        IsVisible="{Binding IsTriggerAuto}">
+                                                    <TextBlock Text="AUTO"/>
+                                                </Border>
+                                                <Border Classes="pill trigger-pre"
+                                                        IsVisible="{Binding IsTriggerPreRestore}">
+                                                    <TextBlock Text="PRE-RESTORE"/>
+                                                </Border>
+                                            </StackPanel>
+
+                                            <!-- Time + size -->
+                                            <StackPanel Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Classes="body-emph" Text="{Binding CapturedAtText}"/>
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <TextBlock Classes="caption" Text="{Binding FormattedSize}"/>
+                                                    <TextBlock Classes="caption" Text="·"/>
+                                                    <TextBlock Classes="caption" Text="{Binding HealthLabel}"/>
+                                                    <TextBlock Classes="caption" Foreground="{StaticResource AccentBrush}"
+                                                               FontStyle="Italic"
+                                                               Text="{Binding Tag}"
+                                                               IsVisible="{Binding Tag, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <!-- Action buttons (fade in on hover via list-row style) -->
+                                            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="2"
+                                                        x:Name="PART_RowActions"
+                                                        VerticalAlignment="Center">
+                                                <Button Classes="icon" Content="↺" ToolTip.Tip="Restore"
+                                                        Command="{Binding RestoreCommand}"/>
+                                                <Button Classes="icon" Content="🏷" ToolTip.Tip="Tag"
+                                                        Command="{Binding EditTagCommand}"/>
+                                                <Button Classes="icon" Content="🗑" ToolTip.Tip="Delete"
+                                                        Command="{Binding DeleteCommand}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>
