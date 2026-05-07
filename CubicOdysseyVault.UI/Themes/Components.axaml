@@ -1,0 +1,344 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- ============================================================
+       TYPOGRAPHY — apply via Classes="display|heading|title|..."
+       ============================================================ -->
+  <Style Selector="TextBlock.display">
+    <Setter Property="FontSize" Value="22"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.heading">
+    <Setter Property="FontSize" Value="18"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.title">
+    <Setter Property="FontSize" Value="15"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.subtitle">
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="FontWeight" Value="Medium"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.body">
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontWeight" Value="Normal"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.body-emph">
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.body-sm">
+    <Setter Property="FontSize" Value="12"/>
+    <Setter Property="FontWeight" Value="Normal"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.label">
+    <Setter Property="FontSize" Value="11"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="LetterSpacing" Value="1.4"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.caption">
+    <Setter Property="FontSize" Value="10"/>
+    <Setter Property="FontWeight" Value="Normal"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.numeric">
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace"/>
+  </Style>
+
+  <!-- ============================================================
+       BUTTONS — apply via Classes="primary|secondary|ghost|destructive|icon"
+       ============================================================ -->
+  <!-- Primary -->
+  <Style Selector="Button.primary">
+    <Setter Property="Foreground" Value="White"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontWeight" Value="Medium"/>
+    <Setter Property="Padding" Value="14,7"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}"/>
+  </Style>
+  <Style Selector="Button.primary /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}"/>
+  </Style>
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentBrushSecondary}"/>
+  </Style>
+  <Style Selector="Button.primary:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+  </Style>
+
+  <!-- Secondary -->
+  <Style Selector="Button.secondary">
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontWeight" Value="Medium"/>
+    <Setter Property="Padding" Value="14,7"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}"/>
+  </Style>
+  <Style Selector="Button.secondary /template/ ContentPresenter">
+    <Setter Property="Background" Value="#0FFFFFFF"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}"/>
+  </Style>
+  <Style Selector="Button.secondary:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#1AFFFFFF"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}"/>
+  </Style>
+
+  <!-- Ghost -->
+  <Style Selector="Button.ghost">
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontWeight" Value="Medium"/>
+    <Setter Property="Padding" Value="12,6"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}"/>
+  </Style>
+  <Style Selector="Button.ghost /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}"/>
+  </Style>
+  <Style Selector="Button.ghost:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#0DFFFFFF"/>
+  </Style>
+
+  <!-- Destructive (outlined red) -->
+  <Style Selector="Button.destructive">
+    <Setter Property="Foreground" Value="#FFFF8A87"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontWeight" Value="Medium"/>
+    <Setter Property="Padding" Value="14,7"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}"/>
+  </Style>
+  <Style Selector="Button.destructive /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}"/>
+  </Style>
+  <Style Selector="Button.destructive:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentSurfaceBrush}"/>
+  </Style>
+
+  <!-- Icon (square 28x28) -->
+  <Style Selector="Button.icon">
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+    <Setter Property="Width" Value="28"/>
+    <Setter Property="Height" Value="28"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}"/>
+  </Style>
+  <Style Selector="Button.icon /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}"/>
+  </Style>
+  <Style Selector="Button.icon:pointerover">
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+  </Style>
+  <Style Selector="Button.icon:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#1AFFFFFF"/>
+  </Style>
+
+  <!-- ============================================================
+       CARDS — apply via Classes="card" (and toggle "selected")
+       ============================================================ -->
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{DynamicResource CardSurfaceBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusLg}"/>
+    <Setter Property="BoxShadow" Value="0 1 3 #66000000"/>
+  </Style>
+  <Style Selector="Border.card.selected">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}"/>
+    <Setter Property="BoxShadow" Value="0 0 0 1 #73C62828, 0 4 14 0 #80000000"/>
+  </Style>
+
+  <!-- ============================================================
+       PILLS — apply via Classes="pill health-ok|health-sus|..."
+       Note: TextBlock inside the pill picks up sizing from > selector.
+       ============================================================ -->
+  <Style Selector="Border.pill">
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusSm}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="Padding" Value="7,3"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Border.pill > TextBlock">
+    <Setter Property="FontSize" Value="10"/>
+    <Setter Property="FontWeight" Value="Bold"/>
+    <Setter Property="LetterSpacing" Value="1"/>
+  </Style>
+
+  <!-- Health -->
+  <Style Selector="Border.pill.health-ok">
+    <Setter Property="Background" Value="#284CAF50"/>
+    <Setter Property="BorderBrush" Value="#524CAF50"/>
+  </Style>
+  <Style Selector="Border.pill.health-ok > TextBlock">
+    <Setter Property="Foreground" Value="#FF7FD380"/>
+  </Style>
+  <Style Selector="Border.pill.health-sus">
+    <Setter Property="Background" Value="#26FFB300"/>
+    <Setter Property="BorderBrush" Value="#52FFB300"/>
+  </Style>
+  <Style Selector="Border.pill.health-sus > TextBlock">
+    <Setter Property="Foreground" Value="#FFFFC757"/>
+  </Style>
+  <Style Selector="Border.pill.health-bad">
+    <Setter Property="Background" Value="#2EE53935"/>
+    <Setter Property="BorderBrush" Value="#61E53935"/>
+  </Style>
+  <Style Selector="Border.pill.health-bad > TextBlock">
+    <Setter Property="Foreground" Value="#FFFF8A87"/>
+  </Style>
+
+  <!-- Trigger -->
+  <Style Selector="Border.pill.trigger-manual">
+    <Setter Property="Background" Value="{DynamicResource AccentSurfaceBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}"/>
+  </Style>
+  <Style Selector="Border.pill.trigger-manual > TextBlock">
+    <Setter Property="Foreground" Value="#FFFF8A87"/>
+  </Style>
+  <Style Selector="Border.pill.trigger-auto">
+    <Setter Property="Background" Value="#26FFB300"/>
+    <Setter Property="BorderBrush" Value="#52FFB300"/>
+  </Style>
+  <Style Selector="Border.pill.trigger-auto > TextBlock">
+    <Setter Property="Foreground" Value="#FFFFC757"/>
+  </Style>
+  <Style Selector="Border.pill.trigger-pre">
+    <Setter Property="Background" Value="#2E4682C8"/>
+    <Setter Property="BorderBrush" Value="#614682C8"/>
+  </Style>
+  <Style Selector="Border.pill.trigger-pre > TextBlock">
+    <Setter Property="Foreground" Value="#FF7FB5E6"/>
+  </Style>
+
+  <!-- Inventory categories — use existing brushes for fills, lighter text -->
+  <Style Selector="Border.pill.cat-equipment">
+    <Setter Property="Background" Value="#284CAF50"/>
+    <Setter Property="BorderBrush" Value="#524CAF50"/>
+  </Style>
+  <Style Selector="Border.pill.cat-equipment > TextBlock">
+    <Setter Property="Foreground" Value="#FF7FD380"/>
+  </Style>
+  <Style Selector="Border.pill.cat-weapon">
+    <Setter Property="Background" Value="#2EE53935"/>
+    <Setter Property="BorderBrush" Value="#61E53935"/>
+  </Style>
+  <Style Selector="Border.pill.cat-weapon > TextBlock">
+    <Setter Property="Foreground" Value="#FFFF8A87"/>
+  </Style>
+  <Style Selector="Border.pill.cat-resource">
+    <Setter Property="Background" Value="#2E42A5F5"/>
+    <Setter Property="BorderBrush" Value="#6142A5F5"/>
+  </Style>
+  <Style Selector="Border.pill.cat-resource > TextBlock">
+    <Setter Property="Foreground" Value="#FF7FB5E6"/>
+  </Style>
+  <Style Selector="Border.pill.cat-shipcomponent">
+    <Setter Property="Background" Value="#2EFFA726"/>
+    <Setter Property="BorderBrush" Value="#61FFA726"/>
+  </Style>
+  <Style Selector="Border.pill.cat-shipcomponent > TextBlock">
+    <Setter Property="Foreground" Value="#FFFFAE6C"/>
+  </Style>
+  <Style Selector="Border.pill.cat-deployable">
+    <Setter Property="Background" Value="#2EAB47BC"/>
+    <Setter Property="BorderBrush" Value="#61AB47BC"/>
+  </Style>
+  <Style Selector="Border.pill.cat-deployable > TextBlock">
+    <Setter Property="Foreground" Value="#FFD09BE5"/>
+  </Style>
+  <Style Selector="Border.pill.cat-key">
+    <Setter Property="Background" Value="#33FFD54F"/>
+    <Setter Property="BorderBrush" Value="#66FFD54F"/>
+  </Style>
+  <Style Selector="Border.pill.cat-key > TextBlock">
+    <Setter Property="Foreground" Value="#FFE7D575"/>
+  </Style>
+  <Style Selector="Border.pill.cat-ship">
+    <Setter Property="Background" Value="#2E26C6DA"/>
+    <Setter Property="BorderBrush" Value="#6126C6DA"/>
+  </Style>
+  <Style Selector="Border.pill.cat-ship > TextBlock">
+    <Setter Property="Foreground" Value="#FF6CDDE8"/>
+  </Style>
+  <Style Selector="Border.pill.cat-other">
+    <Setter Property="Background" Value="#2E757575"/>
+    <Setter Property="BorderBrush" Value="#61757575"/>
+  </Style>
+  <Style Selector="Border.pill.cat-other > TextBlock">
+    <Setter Property="Foreground" Value="#FFB0B0B0"/>
+  </Style>
+
+  <!-- ============================================================
+       INPUTS — TextBox / NumericUpDown
+       ============================================================ -->
+  <Style Selector="TextBox">
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}"/>
+    <Setter Property="Padding" Value="10,7"/>
+    <Setter Property="FontSize" Value="13"/>
+  </Style>
+  <Style Selector="TextBox /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="#0AFFFFFF"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+  </Style>
+  <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="#47FFFFFF"/> <!-- 28% -->
+  </Style>
+  <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}"/>
+    <Setter Property="Background" Value="#0FFFFFFF"/>
+  </Style>
+
+  <Style Selector="NumericUpDown">
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}"/>
+    <Setter Property="FontSize" Value="13"/>
+  </Style>
+
+  <!-- ============================================================
+       LIST ROW — apply via Classes="list-row" on a Border around
+       the row contents. Visible action buttons fade in on hover.
+       ============================================================ -->
+  <Style Selector="Border.list-row">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="2,0,0,1"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+    <Setter Property="Padding" Value="12,9"/>
+  </Style>
+  <Style Selector="Border.list-row:pointerover">
+    <Setter Property="Background" Value="#08FFFFFF"/>
+  </Style>
+  <Style Selector="Border.list-row:pointerover Control#PART_RowActions">
+    <Setter Property="Opacity" Value="1"/>
+  </Style>
+  <Style Selector="Border.list-row Control#PART_RowActions">
+    <Setter Property="Opacity" Value="0"/>
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.12"/>
+      </Transitions>
+    </Setter>
+  </Style>
+
+</Styles>
