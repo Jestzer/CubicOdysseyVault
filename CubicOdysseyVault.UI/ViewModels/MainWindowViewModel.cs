@@ -24,6 +24,9 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private bool _isDiscovering;
     [ObservableProperty] private bool _hasDiscovered;
     [ObservableProperty] private bool _showEmptyState;
+    [ObservableProperty] private int _totalSnapshotCount;
+    [ObservableProperty] private long _totalDiskUsedBytes;
+    [ObservableProperty] private string _totalDiskUsedText = "0 B";
 
     private AppSettings _settings;
     private bool _skipOnboardingThisSession;
@@ -71,6 +74,7 @@ public partial class MainWindowViewModel : ViewModelBase
             SelectedSteamUser = SteamUsers.FirstOrDefault();
             HasDiscovered = true;
             UpdateShowEmptyState();
+            RecomputeStorageStats();
             _activeSources = result.RawSources.ToList();
             StartWatchers(_activeSources);
             StatusMessage = BuildSummary(result);
@@ -397,6 +401,49 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     private static string Plural(int n) => n == 1 ? string.Empty : "s";
+
+    public static (int count, long bytes) ComputeStorageStats(
+        IEnumerable<IReadOnlyList<Snapshot>> snapshotLists)
+    {
+        int count = 0;
+        long bytes = 0;
+        foreach (var list in snapshotLists)
+        {
+            foreach (var s in list)
+            {
+                count++;
+                bytes += s.TotalBytes;
+            }
+        }
+        return (count, bytes);
+    }
+
+    public static string FormatBytes(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        double kb = bytes / 1024.0;
+        if (kb < 1024) return $"{kb:0.#} KB";
+        double mb = kb / 1024.0;
+        if (mb < 1024) return $"{mb:0.0} MB";
+        double gb = mb / 1024.0;
+        return $"{gb:0.0} GB";
+    }
+
+    private void RecomputeStorageStats()
+    {
+        var lists = new List<IReadOnlyList<Snapshot>>();
+        foreach (var user in SteamUsers)
+        {
+            foreach (var slot in user.Slots)
+                lists.Add(slot.Snapshots.Select(s => s.Snapshot).ToList());
+            foreach (var acct in user.Accounts)
+                lists.Add(acct.Snapshots.Select(s => s.Snapshot).ToList());
+        }
+        var (count, bytes) = ComputeStorageStats(lists);
+        TotalSnapshotCount = count;
+        TotalDiskUsedBytes = bytes;
+        TotalDiskUsedText = FormatBytes(bytes);
+    }
 
     private sealed record DiscoveryResult(
         List<SteamUserViewModel> Users,
