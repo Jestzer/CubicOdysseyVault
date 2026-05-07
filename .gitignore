@@ -25,3 +25,6 @@ x86/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Superpowers (brainstorm sessions, ephemeral)
+.superpowers/
