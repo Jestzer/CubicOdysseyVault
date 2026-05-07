@@ -237,8 +237,14 @@
 
                                             <!-- Pills (health + trigger) wrapped to avoid phantom column width -->
                                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                                <Border Classes="pill health-ok">
+                                                <Border Classes="pill health-ok" IsVisible="{Binding IsHealthHealthy}">
                                                     <TextBlock Text="HEALTHY"/>
+                                                </Border>
+                                                <Border Classes="pill health-sus" IsVisible="{Binding IsHealthSuspicious}">
+                                                    <TextBlock Text="SUSPECT"/>
+                                                </Border>
+                                                <Border Classes="pill health-bad" IsVisible="{Binding IsHealthCorrupted}">
+                                                    <TextBlock Text="CORRUPTED"/>
                                                 </Border>
                                             </StackPanel>
 

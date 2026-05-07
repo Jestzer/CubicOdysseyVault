@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CubicOdysseyVault.Core.Integrity;
 using CubicOdysseyVault.Core.Snapshots;
 
 namespace CubicOdysseyVault.UI.ViewModels;
@@ -19,6 +20,9 @@ public partial class SnapshotViewModel : ViewModelBase
     public bool IsTriggerManual => Snapshot.Trigger == SnapshotTrigger.Manual;
     public bool IsTriggerAuto => Snapshot.Trigger == SnapshotTrigger.Auto;
     public bool IsTriggerPreRestore => Snapshot.Trigger == SnapshotTrigger.PreRestore;
+    public bool IsHealthHealthy => Snapshot.Health == SlotHealth.Healthy;
+    public bool IsHealthSuspicious => Snapshot.Health == SlotHealth.Suspicious;
+    public bool IsHealthCorrupted => Snapshot.Health == SlotHealth.Corrupted;
     public string? Tag => Snapshot.Tag;
     public string FormattedSize => FormatBytes(Snapshot.TotalBytes);
     public string HealthLabel => Snapshot.Health.ToString();
