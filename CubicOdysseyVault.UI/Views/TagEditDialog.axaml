@@ -4,6 +4,7 @@
         x:Class="CubicOdysseyVault.UI.Views.TagEditDialog"
         x:DataType="vm:TagEditViewModel"
         Title="Edit tag"
+        Icon="/Assets/icon.png"
         Width="440" Height="220"
         CanResize="False"
         WindowStartupLocation="CenterOwner"

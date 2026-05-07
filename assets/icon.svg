@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- Isometric cube divided into a 2x2 voxel grid on each visible face,
+       with a single red accent voxel on the top face (front quadrant). -->
+
+  <!-- Top face (lightest) -->
+  <polygon points="128,48 197,88 128,128 59,88"
+           fill="#6B6B70" stroke="#1A1A1C" stroke-width="2.5" stroke-linejoin="round"/>
+
+  <!-- Front-right face (medium) -->
+  <polygon points="197,88 197,168 128,208 128,128"
+           fill="#3F3F45" stroke="#1A1A1C" stroke-width="2.5" stroke-linejoin="round"/>
+
+  <!-- Front-left face (darkest) -->
+  <polygon points="59,88 128,128 128,208 59,168"
+           fill="#2A2A2D" stroke="#1A1A1C" stroke-width="2.5" stroke-linejoin="round"/>
+
+  <!-- Sub-grid on top face -->
+  <line x1="162.5" y1="68" x2="93.5"  y2="108" stroke="#525258" stroke-width="1.5"/>
+  <line x1="93.5"  y1="68" x2="162.5" y2="108" stroke="#525258" stroke-width="1.5"/>
+
+  <!-- Sub-grid on front-right face -->
+  <line x1="197"   y1="128" x2="128"   y2="168" stroke="#303035" stroke-width="1.5"/>
+  <line x1="162.5" y1="108" x2="162.5" y2="188" stroke="#303035" stroke-width="1.5"/>
+
+  <!-- Sub-grid on front-left face -->
+  <line x1="59"   y1="128" x2="128"  y2="168" stroke="#1F1F22" stroke-width="1.5"/>
+  <line x1="93.5" y1="108" x2="93.5" y2="188" stroke="#1F1F22" stroke-width="1.5"/>
+
+  <!-- Red accent voxel: front sub-rhombus on the top face -->
+  <polygon points="128,88 162.5,108 128,128 93.5,108"
+           fill="#C62828" stroke="#1A1A1C" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>

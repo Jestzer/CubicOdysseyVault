@@ -34,6 +34,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public Func<SaveSlot, Snapshot, string, Task<bool>>? ShowRestoreConfirmDialog { get; set; }
     public Func<string, string?, Task<string?>>? ShowTagEditDialog { get; set; }
     public Func<Snapshot, Task<bool>>? ShowDeleteConfirmDialog { get; set; }
+    public Func<SaveSlot, Task>? ShowSaveInspectorDialog { get; set; }
     public Action<string>? OpenBackupFolderRequested { get; set; }
 
     public MainWindowViewModel()
@@ -97,6 +98,13 @@ public partial class MainWindowViewModel : ViewModelBase
             StatusMessage = "Settings saved. Re-scanning...";
             await RefreshDiscoveryAsync();
         }
+    }
+
+    [RelayCommand]
+    private async Task InspectSelectedSlot()
+    {
+        if (SelectedSlot == null || ShowSaveInspectorDialog == null) return;
+        await ShowSaveInspectorDialog(SelectedSlot.Slot);
     }
 
     [RelayCommand]

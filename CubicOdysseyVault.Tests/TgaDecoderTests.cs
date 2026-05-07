@@ -6,18 +6,17 @@ namespace CubicOdysseyVault.Tests;
 public class TgaDecoderTests
 {
     [Fact]
-    public void Decode_2x2_24bpp_BottomUp_SwapsBgrToRgbAndFlipsRows()
+    public void Decode_2x2_24bpp_AlwaysReadsTopDown_RegardlessOfDescriptor()
     {
-        // 2x2, 24bpp, bottom-up. TGA stores rows bottom-first.
-        // We construct the file so that after decoding the top row reads RGB pixels P1, P2
-        // and the bottom row reads P3, P4.
+        // The decoder ignores the descriptor's origin bit because Cubic Odyssey
+        // writes scanlines top-down while marking the descriptor as bottom-up.
+        // First row in the file = first row in the output.
         var pixels = new byte[]
         {
-            // Bottom row first (TGA's natural order for bottom-up).
-            // Pixel: 0xR3 0xG3 0xB3 stored as B,G,R = 0xB3, 0xG3, 0xR3
-            0xB3, 0xA3, 0x93,  0xB4, 0xA4, 0x94,
-            // Top row second
+            // Row 0 (first in the file → top of the output)
             0xB1, 0xA1, 0x91,  0xB2, 0xA2, 0x92,
+            // Row 1 (second in the file → bottom of the output)
+            0xB3, 0xA3, 0x93,  0xB4, 0xA4, 0x94,
         };
         var data = BuildTga(width: 2, height: 2, bpp: 24, topDown: false, pixelData: pixels);
 
@@ -26,7 +25,7 @@ public class TgaDecoderTests
         Assert.Equal(2, image.Height);
         Assert.Equal(16, image.RgbaPixels.Length);
 
-        // Top-left after decode = "Pixel 1": R=0x91, G=0xA1, B=0xB1, A=0xFF
+        // Top-left = "Pixel 1": R=0x91, G=0xA1, B=0xB1, A=0xFF
         Assert.Equal(0x91, image.RgbaPixels[0]);
         Assert.Equal(0xA1, image.RgbaPixels[1]);
         Assert.Equal(0xB1, image.RgbaPixels[2]);
@@ -41,6 +40,30 @@ public class TgaDecoderTests
         Assert.Equal(0x93, image.RgbaPixels[8]);
         Assert.Equal(0xA3, image.RgbaPixels[9]);
         Assert.Equal(0xB3, image.RgbaPixels[10]);
+    }
+
+    [Fact]
+    public void Decode_RealCubicOdysseyDescriptor_TopRowMatchesFileFirstRow()
+    {
+        // Regression: the real screenshot.tga has descriptor=0x08 (bit 5 clear =
+        // bottom-up by spec). Honoring that flag flipped the rendered image.
+        // First file row should land at output row 0.
+        var pixels = new byte[]
+        {
+            // Row 0: distinct sentinel bytes
+            0x10, 0x20, 0x30, 0xFF,
+            // Row 1
+            0x40, 0x50, 0x60, 0xFF,
+        };
+        var data = BuildTga(width: 1, height: 2, bpp: 32, topDown: false, pixelData: pixels);
+
+        var image = TgaDecoder.Decode(data);
+        // Top pixel (output row 0) should come from the file's first row, not the last.
+        Assert.Equal(0x30, image.RgbaPixels[0]); // R from file's row-0 pixel (offset 2)
+        Assert.Equal(0x20, image.RgbaPixels[1]);
+        Assert.Equal(0x10, image.RgbaPixels[2]);
+        // Bottom pixel (output row 1) should come from the file's second row.
+        Assert.Equal(0x60, image.RgbaPixels[4]);
     }
 
     [Fact]

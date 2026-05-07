@@ -32,7 +32,11 @@ public static class TgaDecoder
         if (width <= 0 || height <= 0)
             throw new InvalidDataException($"TGA invalid dimensions {width}x{height}.");
 
-        bool topDown = (descriptor & 0x20) != 0;
+        // Cubic Odyssey writes scanlines top-down despite leaving the descriptor's
+        // origin bit (0x20) clear, which by spec means bottom-up. Honoring the
+        // descriptor flips the rendered image upside-down. Always read top-down
+        // — the only TGAs we care about are the game's own screenshots.
+        _ = descriptor;
         int bytesPerPixel = bpp / 8;
 
         int colorMapBytes = colorMapType == 1
@@ -49,8 +53,7 @@ public static class TgaDecoder
 
         for (int y = 0; y < height; y++)
         {
-            int srcRow = topDown ? y : (height - 1 - y);
-            int srcLineStart = dataOffset + srcRow * width * bytesPerPixel;
+            int srcLineStart = dataOffset + y * width * bytesPerPixel;
             int dstLineStart = y * width * 4;
 
             for (int x = 0; x < width; x++)

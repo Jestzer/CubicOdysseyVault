@@ -25,6 +25,7 @@ public partial class MainWindow : Window
         vm.ShowRestoreConfirmDialog = ShowRestoreConfirmDialogAsync;
         vm.ShowTagEditDialog = ShowTagEditDialogAsync;
         vm.ShowDeleteConfirmDialog = ShowDeleteConfirmDialogAsync;
+        vm.ShowSaveInspectorDialog = ShowSaveInspectorDialogAsync;
         vm.OpenBackupFolderRequested = OpenInFileManager;
 
         if (!vm.HasDiscovered && !vm.IsDiscovering)
@@ -69,6 +70,13 @@ public partial class MainWindow : Window
         var dialog = new DeleteConfirmDialog { DataContext = vm };
         await dialog.ShowDialog(this);
         return vm.Confirmed;
+    }
+
+    private async Task ShowSaveInspectorDialogAsync(SaveSlot slot)
+    {
+        var vm = new SaveInspectorViewModel(slot);
+        var dialog = new SaveInspectorDialog { DataContext = vm };
+        await dialog.ShowDialog(this);
     }
 
     private static void OpenInFileManager(string path)

@@ -4,6 +4,7 @@
         x:Class="CubicOdysseyVault.UI.Views.OnboardingDialog"
         x:DataType="vm:OnboardingViewModel"
         Title="Welcome to Cubic Odyssey Vault"
+        Icon="/Assets/icon.png"
         Width="640" Height="620"
         MinWidth="600" MinHeight="560"
         CanResize="False"

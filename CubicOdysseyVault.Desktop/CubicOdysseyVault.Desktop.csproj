@@ -5,6 +5,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets/icon.ico</ApplicationIcon>
     <AssemblyName>CubicOdysseyVault</AssemblyName>
   </PropertyGroup>
 

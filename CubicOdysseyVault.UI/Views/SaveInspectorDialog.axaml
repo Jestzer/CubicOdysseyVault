@@ -1,0 +1,171 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CubicOdysseyVault.UI.ViewModels"
+        x:Class="CubicOdysseyVault.UI.Views.SaveInspectorDialog"
+        x:DataType="vm:SaveInspectorViewModel"
+        Title="Inspect save"
+        Icon="/Assets/icon.png"
+        Width="1200" Height="720"
+        MinWidth="1000" MinHeight="600"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource MainBackgroundBrush}">
+
+    <DockPanel>
+        <!-- Header -->
+        <Border DockPanel.Dock="Top"
+                Background="{StaticResource SidebarBackgroundBrush}"
+                BorderBrush="{StaticResource SeparatorBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="14,8">
+            <TextBlock Text="{Binding Title}"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       FontSize="13" FontWeight="SemiBold" />
+        </Border>
+
+        <!-- Bottom bar -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{StaticResource SidebarBackgroundBrush}"
+                BorderBrush="{StaticResource SeparatorBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,8">
+            <Button Content="Close"
+                    HorizontalAlignment="Right"
+                    MinWidth="80"
+                    Command="{Binding CloseCommand}" />
+        </Border>
+
+        <!-- Left: file list -->
+        <Border DockPanel.Dock="Left"
+                Width="260"
+                Background="{StaticResource SidebarBackgroundBrush}"
+                BorderBrush="{StaticResource SeparatorBrush}"
+                BorderThickness="0,0,1,0"
+                Padding="8">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top"
+                           Text="Files"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="10" FontWeight="SemiBold"
+                           Margin="4,0,0,8" />
+                <ListBox ItemsSource="{Binding Files}"
+                         SelectedItem="{Binding SelectedFile}"
+                         Background="Transparent"
+                         BorderThickness="0">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SaveFileViewModel">
+                            <StackPanel Spacing="2" Margin="0,2">
+                                <TextBlock Text="{Binding FileName}"
+                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                           FontFamily="Consolas,monospace"
+                                           FontSize="12" />
+                                <TextBlock Text="{Binding SizeLabel}"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           FontSize="10" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- Right: tabs -->
+        <Grid Margin="0">
+            <TextBlock Text="Select a file"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       IsVisible="{Binding !HasSelectedFile}" />
+
+            <ContentControl IsVisible="{Binding HasSelectedFile}"
+                            Content="{Binding SelectedFile}">
+                <ContentControl.ContentTemplate>
+                    <DataTemplate x:DataType="vm:SaveFileViewModel">
+            <TabControl Background="Transparent"
+                        BorderThickness="0"
+                        Padding="0">
+                <!-- Decoded -->
+                <TabItem Header="Decoded">
+                    <DockPanel Margin="14">
+                        <TextBlock DockPanel.Dock="Top"
+                                   Text="{Binding ErrorMessage}"
+                                   Foreground="{StaticResource HealthSuspiciousBrush}"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,8"
+                                   IsVisible="{Binding ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                        <TextBlock DockPanel.Dock="Top"
+                                   Text="Not a Cubic Odyssey TLV save (use Strings or Hex)."
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="11"
+                                   Margin="0,0,0,8"
+                                   IsVisible="{Binding !IsTlvSave}" />
+                        <ScrollViewer IsVisible="{Binding IsTlvSave}">
+                            <TreeView ItemsSource="{Binding TlvEntries}" Background="Transparent">
+                                <TreeView.ItemTemplate>
+                                    <TreeDataTemplate ItemsSource="{Binding Children}"
+                                                      x:DataType="vm:TlvEntryViewModel">
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <TextBlock Text="{Binding TagDisplay}"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       FontWeight="SemiBold"
+                                                       MinWidth="160" />
+                                            <TextBlock Text="{Binding KindLabel}"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       FontSize="11"
+                                                       MinWidth="60" />
+                                            <TextBlock Text="{Binding ValueText}"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       FontFamily="Consolas,monospace" />
+                                            <TextBlock Text="{Binding HexPreview}"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       FontFamily="Consolas,monospace"
+                                                       FontSize="10"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </TreeDataTemplate>
+                                </TreeView.ItemTemplate>
+                            </TreeView>
+                        </ScrollViewer>
+                    </DockPanel>
+                </TabItem>
+
+                <!-- Strings -->
+                <TabItem Header="Strings">
+                    <ScrollViewer Margin="14">
+                        <ItemsControl ItemsSource="{Binding Strings}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="100,*" Margin="0,0,0,2">
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding Offset, StringFormat='@0x{0:x6}'}"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   FontFamily="Consolas,monospace"
+                                                   FontSize="11" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Text}"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   FontFamily="Consolas,monospace"
+                                                   FontSize="12" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- Hex -->
+                <TabItem Header="Hex">
+                    <ScrollViewer Margin="14" HorizontalScrollBarVisibility="Auto">
+                        <SelectableTextBlock Text="{Binding HexText}"
+                                             Foreground="{StaticResource TextPrimaryBrush}"
+                                             FontFamily="Consolas,monospace"
+                                             FontSize="11" />
+                    </ScrollViewer>
+                </TabItem>
+            </TabControl>
+                    </DataTemplate>
+                </ContentControl.ContentTemplate>
+            </ContentControl>
+        </Grid>
+    </DockPanel>
+</Window>

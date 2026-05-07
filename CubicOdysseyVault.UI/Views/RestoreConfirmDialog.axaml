@@ -4,6 +4,7 @@
         x:Class="CubicOdysseyVault.UI.Views.RestoreConfirmDialog"
         x:DataType="vm:RestoreConfirmViewModel"
         Title="Restore snapshot"
+        Icon="/Assets/icon.png"
         Width="540" Height="600"
         MinWidth="500" MinHeight="540"
         CanResize="False"

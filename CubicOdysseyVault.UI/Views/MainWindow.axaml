@@ -4,6 +4,7 @@
         x:Class="CubicOdysseyVault.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="Cubic Odyssey Vault"
+        Icon="/Assets/icon.png"
         Width="1280" Height="780"
         MinWidth="1000" MinHeight="600"
         Background="{StaticResource MainBackgroundBrush}">
@@ -142,6 +143,9 @@
 
                     <Button Content="Back up now"
                             Command="{Binding BackUpNowCommand}"
+                            HorizontalAlignment="Stretch" />
+                    <Button Content="Inspect save data..."
+                            Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).InspectSelectedSlotCommand}"
                             HorizontalAlignment="Stretch" />
                     <TextBlock Text="{Binding BackupStatus}"
                                Foreground="{StaticResource TextSecondaryBrush}"

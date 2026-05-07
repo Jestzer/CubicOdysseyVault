@@ -4,6 +4,7 @@
         x:Class="CubicOdysseyVault.UI.Views.DeleteConfirmDialog"
         x:DataType="vm:DeleteConfirmViewModel"
         Title="Delete snapshot"
+        Icon="/Assets/icon.png"
         Width="460" Height="300"
         CanResize="False"
         WindowStartupLocation="CenterOwner"

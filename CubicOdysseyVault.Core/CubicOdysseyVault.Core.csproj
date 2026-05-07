@@ -8,4 +8,8 @@
     <InternalsVisibleTo Include="CubicOdysseyVault.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="ZstdSharp.Port" Version="0.8.4" />
+  </ItemGroup>
+
 </Project>

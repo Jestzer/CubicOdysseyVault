@@ -4,6 +4,7 @@
         x:Class="CubicOdysseyVault.UI.Views.SettingsDialog"
         x:DataType="vm:SettingsViewModel"
         Title="Settings"
+        Icon="/Assets/icon.png"
         Width="560" Height="600"
         MinWidth="520" MinHeight="540"
         CanResize="False"
