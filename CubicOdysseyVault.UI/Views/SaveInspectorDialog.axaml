@@ -222,24 +222,35 @@
                             Padding="8">
                         <DockPanel>
                             <TextBlock DockPanel.Dock="Top"
-                                       Text="Files"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                       FontSize="10" FontWeight="SemiBold"
+                                       Classes="label"
+                                       Text="FILES"
                                        Margin="4,0,0,8" />
                             <ListBox ItemsSource="{Binding Files}"
                                      SelectedItem="{Binding SelectedFile}"
-                                     Background="Transparent"
+                                     Background="{StaticResource SidebarBackgroundBrush}"
                                      BorderThickness="0">
+                                <ListBox.Styles>
+                                    <Style Selector="ListBoxItem">
+                                        <Setter Property="Padding" Value="0"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem /template/ ContentPresenter#PART_ContentPresenter">
+                                        <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                        <Setter Property="Background" Value="#0DFFFFFF"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+                                        <Setter Property="Background" Value="{DynamicResource AccentSurfaceBrush}"/>
+                                    </Style>
+                                </ListBox.Styles>
                                 <ListBox.ItemTemplate>
                                     <DataTemplate x:DataType="vm:SaveFileViewModel">
-                                        <StackPanel Spacing="2" Margin="0,2">
-                                            <TextBlock Text="{Binding FileName}"
-                                                       Foreground="{StaticResource TextPrimaryBrush}"
-                                                       FontFamily="Consolas,monospace"
-                                                       FontSize="12" />
-                                            <TextBlock Text="{Binding SizeLabel}"
-                                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                                       FontSize="10" />
+                                        <StackPanel Spacing="2" Margin="6,4">
+                                            <TextBlock Classes="body"
+                                                       Text="{Binding FileName}" />
+                                            <TextBlock Classes="body-sm"
+                                                       Text="{Binding SizeLabel}"
+                                                       Foreground="{StaticResource TextSecondaryBrush}" />
                                         </StackPanel>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -256,20 +267,20 @@
                                         Content="{Binding SelectedFile}">
                             <ContentControl.ContentTemplate>
                                 <DataTemplate x:DataType="vm:SaveFileViewModel">
-                                    <TabControl Background="Transparent" BorderThickness="0" Padding="0">
+                                    <TabControl Background="Transparent" BorderThickness="0" Padding="{StaticResource PadMd}">
                                         <TabItem Header="Decoded">
-                                            <DockPanel Margin="14">
+                                            <DockPanel Margin="{StaticResource PadLg}">
                                                 <TextBlock DockPanel.Dock="Top"
+                                                           Classes="body-sm"
                                                            Text="{Binding ErrorMessage}"
                                                            Foreground="{StaticResource HealthSuspiciousBrush}"
-                                                           FontSize="11"
                                                            TextWrapping="Wrap"
                                                            Margin="0,0,0,8"
                                                            IsVisible="{Binding ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}" />
                                                 <TextBlock DockPanel.Dock="Top"
+                                                           Classes="body-sm"
                                                            Text="Not a Cubic Odyssey TLV save (use Strings or Hex)."
                                                            Foreground="{StaticResource TextSecondaryBrush}"
-                                                           FontSize="11"
                                                            Margin="0,0,0,8"
                                                            IsVisible="{Binding !IsTlvSave}" />
                                                 <ScrollViewer IsVisible="{Binding IsTlvSave}">
@@ -278,20 +289,16 @@
                                                             <TreeDataTemplate ItemsSource="{Binding Children}"
                                                                               x:DataType="vm:TlvEntryViewModel">
                                                                 <StackPanel Orientation="Horizontal" Spacing="10">
-                                                                    <TextBlock Text="{Binding TagDisplay}"
-                                                                               Foreground="{StaticResource TextPrimaryBrush}"
-                                                                               FontWeight="SemiBold"
+                                                                    <TextBlock Classes="label"
+                                                                               Text="{Binding TagDisplay}"
                                                                                MinWidth="160" />
-                                                                    <TextBlock Text="{Binding KindLabel}"
-                                                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                                                               FontSize="11"
+                                                                    <TextBlock Classes="label"
+                                                                               Text="{Binding KindLabel}"
                                                                                MinWidth="60" />
-                                                                    <TextBlock Text="{Binding ValueText}"
-                                                                               Foreground="{StaticResource TextPrimaryBrush}"
-                                                                               FontFamily="Consolas,monospace" />
-                                                                    <TextBlock Text="{Binding HexPreview}"
-                                                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                                                               FontFamily="Consolas,monospace"
+                                                                    <TextBlock Classes="numeric"
+                                                                               Text="{Binding ValueText}" />
+                                                                    <TextBlock Classes="numeric"
+                                                                               Text="{Binding HexPreview}"
                                                                                FontSize="10"
                                                                                VerticalAlignment="Center" />
                                                                 </StackPanel>
@@ -302,20 +309,19 @@
                                             </DockPanel>
                                         </TabItem>
                                         <TabItem Header="Strings">
-                                            <ScrollViewer Margin="14">
+                                            <ScrollViewer Margin="{StaticResource PadLg}">
                                                 <ItemsControl ItemsSource="{Binding Strings}">
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
                                                             <Grid ColumnDefinitions="100,*" Margin="0,0,0,2">
                                                                 <TextBlock Grid.Column="0"
+                                                                           Classes="numeric"
                                                                            Text="{Binding Offset, StringFormat='@0x{0:x6}'}"
                                                                            Foreground="{StaticResource TextSecondaryBrush}"
-                                                                           FontFamily="Consolas,monospace"
                                                                            FontSize="11" />
                                                                 <TextBlock Grid.Column="1"
+                                                                           Classes="numeric"
                                                                            Text="{Binding Text}"
-                                                                           Foreground="{StaticResource TextPrimaryBrush}"
-                                                                           FontFamily="Consolas,monospace"
                                                                            FontSize="12" />
                                                             </Grid>
                                                         </DataTemplate>
@@ -324,10 +330,10 @@
                                             </ScrollViewer>
                                         </TabItem>
                                         <TabItem Header="Hex">
-                                            <ScrollViewer Margin="14" HorizontalScrollBarVisibility="Auto">
-                                                <SelectableTextBlock Text="{Binding HexText}"
-                                                                     Foreground="{StaticResource TextPrimaryBrush}"
-                                                                     FontFamily="Consolas,monospace"
+                                            <ScrollViewer Margin="{StaticResource PadLg}" HorizontalScrollBarVisibility="Auto">
+                                                <SelectableTextBlock Classes="numeric"
+                                                                     Text="{Binding HexText}"
+                                                                     FontFamily="Cascadia Mono, Consolas, monospace"
                                                                      FontSize="11" />
                                             </ScrollViewer>
                                         </TabItem>

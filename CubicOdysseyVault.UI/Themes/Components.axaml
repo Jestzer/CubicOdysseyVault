@@ -54,6 +54,10 @@
     <Setter Property="FontSize" Value="13"/>
     <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace"/>
   </Style>
+  <Style Selector="SelectableTextBlock.numeric">
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace"/>
+  </Style>
 
   <!-- ============================================================
        BUTTONS — apply via Classes="primary|secondary|ghost|destructive|icon"
