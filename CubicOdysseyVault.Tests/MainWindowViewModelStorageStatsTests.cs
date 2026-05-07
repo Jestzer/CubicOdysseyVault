@@ -40,6 +40,7 @@ public class MainWindowViewModelStorageStatsTests
         Assert.Equal("0 B",     MainWindowViewModel.FormatBytes(0));
         Assert.Equal("512 B",   MainWindowViewModel.FormatBytes(512));
         Assert.Equal("1.5 KB",  MainWindowViewModel.FormatBytes(1536));
+        Assert.Equal("1.0 KB",  MainWindowViewModel.FormatBytes(1024));
         Assert.Equal("2.0 MB",  MainWindowViewModel.FormatBytes(2 * 1024 * 1024));
         Assert.Equal("1.5 GB",  MainWindowViewModel.FormatBytes((long)(1.5 * 1024 * 1024 * 1024)));
     }
