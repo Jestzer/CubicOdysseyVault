@@ -1,15 +1,44 @@
-# Handoff — pick up from Phase 8
+# Handoff — pick up from Phase 9
 
-> Updated 2026-05-06 at the end of the tag/delete phase.
+> Updated 2026-05-06 at the end of the cross-platform polish phase.
 > Read this first when resuming work.
 
 ## Where we are
 
-**Phases 1–8 are done.** The solution builds clean
+**Phases 1–9 are done.** The solution builds clean
 (`dotnet build CubicOdysseyVault.sln` → 0 warnings, 0 errors),
-`dotnet test` passes 89 tests, and the desktop app supports the
-full snapshot lifecycle: discover → snapshot (manual + auto) →
-browse history → restore → tag → delete.
+`dotnet test` passes 89 tests on Linux, and the discovery layer
+now resolves Windows save sources end-to-end: Documents (via
+`SHGetKnownFolderPath` through .NET's `SpecialFolder.MyDocuments`,
+which follows OneDrive Backup-PC redirection automatically) plus a
+defensive non-redirected `%USERPROFILE%\Documents\` and explicit
+`%USERPROFILE%\OneDrive\Documents\` fallback, all deduped by
+canonical path. Steam install is probed from
+`HKCU\Software\Valve\Steam\SteamPath` via `Microsoft.Win32.Registry`
+(in the .NET 8 BCL — no NuGet package needed). Windows runtime
+smoke-test still pending (no VM at hand on this dev box).
+
+What Phase 9 added:
+
+- **`SaveLocator.AddDocumentsSource` (Windows)** — replaces the
+  Phase 2 stub. Adds three candidates:
+  - `Environment.GetFolderPath(SpecialFolder.MyDocuments)` —
+    canonical, follows OneDrive redirection.
+  - `%USERPROFILE%\Documents` — non-redirected fallback for games
+    that ignore the redirect.
+  - `%USERPROFILE%\OneDrive\Documents` — explicit OneDrive path,
+    in case the redirect didn't propagate.
+  Each candidate that exists is added as a `Documents`-kind source;
+  duplicates collapse via the existing `DedupByCanonicalPath` pass.
+- **`SteamLocator.ReadWindowsRegistryPaths`** — replaces the Phase 2
+  empty stub. `Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam")?.GetValue("SteamPath")`,
+  gated by `OperatingSystem.IsWindows()` (the type throws
+  `PlatformNotSupportedException` on non-Windows). Any read failure
+  swallows and returns empty, so a registry hiccup doesn't block
+  discovery on the candidate-path layer.
+- **No new tests**: both code paths only exercise on Windows; the
+  unit-test suite runs on Linux. Worth covering in Phase 10's
+  Windows smoke pass once a VM is available.
 
 What Phase 8 added:
 
@@ -48,48 +77,52 @@ What Phase 8 added:
   retention interaction test (tagging an Auto snapshot promotes it
   to "always keep" so it survives a subsequent prune). Total: 89.
 
-## What's next: Phase 9 (cross-platform polish)
+## What's next: Phase 10 (README + final docs)
 
-Per `docs/PLAN.md` item 9:
+Per `docs/PLAN.md` item 10:
 
-1. **Windows Documents path resolution** — replace the
-   `// TODO Phase 9` stub in `SaveLocator.AddDocumentsSource` with a
-   real implementation. Need to handle:
-   - The standard Documents folder via
-     `Environment.GetFolderPath(SpecialFolder.MyDocuments)` or
-     `SHGetKnownFolderPath(FOLDERID_Documents)` (the latter is the
-     only correct way under OneDrive redirection).
-   - OneDrive Documents — typically at
-     `%USERPROFILE%\OneDrive\Documents\` but the registered path is
-     in `HKCU\Software\Microsoft\OneDrive\UserFolder` and
-     `KnownFolders` may or may not point there depending on how
-     OneDrive set up Backup-PC. Better: `SHGetKnownFolderPath`
-     resolves through the redirect automatically.
-2. **Windows registry probe for the Steam install path** —
-   `SteamLocator.ReadWindowsRegistryPaths` currently returns
-   `Array.Empty<string>()`. Add `HKCU\Software\Valve\Steam\SteamPath`
-   via `Microsoft.Win32.Registry` (gated by `OperatingSystem.IsWindows()`).
-3. **Build + smoke-test on Windows** — at minimum, verify the
-   solution builds in a Windows .NET 8 SDK, the app launches, and
-   discovery picks up Steam from the registry + `libraryfolders.vdf`
-   parses correctly. Easiest path: a Windows VM, or GitHub Actions
-   `windows-latest` runner.
-4. **Cross-platform `pgrep` fallback** — Windows uses
-   `Process.GetProcessesByName("CubicOdysseySteam")` which only
-   matches if the process name is literally that. If Cubic Odyssey
-   on Windows runs as `CubicOdysseySteam.exe`, this works; otherwise
-   add a fallback. (Linux/Proton already shells out to `pgrep -f`.)
+1. README at the repo root describing what the tool does, why it
+   exists (the Cubic Odyssey save corruption story), build + run
+   instructions for each platform, and a brief tour of the on-disk
+   shape (`<backupRoot>/snapshots/<SteamID32>/<account>/<slot>/...`)
+   so users who want to dig into the backup folder by hand can.
+2. Screenshots optional — depends on whether we can capture the GUI
+   from a non-interactive run. Skip if not feasible.
+3. Mark the project as v0.1 in `CubicOdysseyVault.UI.csproj`'s
+   `<Version>` element so the assembly version matches the milestone.
 
-## What's next: Phase 10 (README + screenshots)
+## Open assumptions still unvalidated
 
-After cross-platform polish lands:
+- **Steam Cloud `remote/` layout**: still inferred from
+  `remotecache.vdf`. Validate when sync materializes the directory.
+- **TGA RLE variant**: only uncompressed RGB observed.
+- **Two-account-folder semantics (`0` vs `1`)**: only `0/` exists.
+- **`pgrep -f CubicOdysseySteam` on Linux/Proton**: confirmed by
+  reasoning, not by an actual run.
+- **Windows process name** for `Process.GetProcessesByName`: assumed
+  to literally be `CubicOdysseySteam` (no `.exe`).
+- **Windows registry probe** + **OneDrive Documents redirect**:
+  code is in place but hasn't been smoke-tested on a Windows host.
+  Likely just-works (both APIs are well-documented) but verify the
+  first time the project is run on Windows.
 
-1. README describing what the tool does and how to run it.
-2. A handful of screenshots: main window, settings dialog,
-   onboarding wizard, restore confirm.
-3. Optional: a brief design notes section pointing at the manifest
-   format and snapshot layout for users who want to understand the
-   on-disk shape.
+## Phase 9 design notes worth remembering
+
+- **Why `Microsoft.Win32.Registry` doesn't need a NuGet package**: the
+  type lives in the .NET 8 BCL for cross-platform targets and throws
+  `PlatformNotSupportedException` if you call it on non-Windows. The
+  `OperatingSystem.IsWindows()` gate prevents that throw, and the
+  `try/catch` swallows any registry weirdness (key missing, ACL'd
+  off, etc.) so a registry hiccup doesn't block discovery — the
+  candidate-path list still runs.
+- **Three Documents candidates for one redirect**: `MyDocuments`
+  alone *should* be enough on a healthy machine, but real-world
+  OneDrive setups are messy. Backup-PC can flip a folder mid-session,
+  some users have legacy data in `%USERPROFILE%\Documents` after
+  enabling redirect, and games occasionally write to the
+  un-redirected location. Cheap to probe all three; the canonical-path
+  dedup at the end of `LocateSources` collapses anything that
+  resolves to the same physical directory.
 
 ## Phase 8 design notes worth remembering
 

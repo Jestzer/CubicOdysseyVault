@@ -86,8 +86,24 @@ public static class SteamLocator
 
     private static IEnumerable<string> ReadWindowsRegistryPaths()
     {
-        // TODO Phase 9: probe HKCU\Software\Valve\Steam\SteamPath via Microsoft.Win32.Registry.
-        return Array.Empty<string>();
+        if (!OperatingSystem.IsWindows()) return Array.Empty<string>();
+
+        string? path = null;
+        try
+        {
+            // HKCU\Software\Valve\Steam\SteamPath is the canonical install
+            // location pointer the Steam client writes for itself. Forward
+            // slashes in the value are normal — Path.GetFullPath in
+            // Canonicalize handles them.
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam");
+            path = key?.GetValue("SteamPath") as string;
+        }
+        catch
+        {
+            return Array.Empty<string>();
+        }
+
+        return string.IsNullOrEmpty(path) ? Array.Empty<string>() : new[] { path };
     }
 
     internal static string ExpandPath(string path)

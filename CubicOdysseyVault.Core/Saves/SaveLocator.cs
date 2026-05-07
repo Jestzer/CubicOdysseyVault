@@ -111,6 +111,42 @@ public static class SaveLocator
     private static void AddDocumentsSource(List<SaveSource> sources)
     {
         if (!OperatingSystem.IsWindows()) return;
-        // TODO Phase 9: SHGetKnownFolderPath(FOLDERID_Documents) + OneDrive Documents.
+
+        // .NET's GetFolderPath(MyDocuments) wraps SHGetKnownFolderPath, which
+        // follows OneDrive's Known Folder Move when the user has Backup-PC
+        // enabled — this is the canonical "Documents" path the game should
+        // be writing to.
+        AddDocumentsCandidate(sources,
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+
+        // Defensive fallbacks: a few games ignore the redirect and write to
+        // %USERPROFILE%\Documents directly; some users have both layouts on
+        // disk (game data was in the old location before OneDrive Backup-PC
+        // got switched on, then half migrated). The dedup pass at the end of
+        // LocateSources collapses duplicates by canonical path.
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (!string.IsNullOrEmpty(userProfile))
+        {
+            AddDocumentsCandidate(sources, Path.Combine(userProfile, "Documents"));
+            AddDocumentsCandidate(sources, Path.Combine(userProfile, "OneDrive", "Documents"));
+        }
+    }
+
+    private static void AddDocumentsCandidate(List<SaveSource> sources, string? documentsPath)
+    {
+        if (string.IsNullOrEmpty(documentsPath)) return;
+
+        var gameRoot = Path.Combine(documentsPath, Constants.CubicOdysseySaveFolderName);
+        var saveDir = Path.Combine(gameRoot, "save");
+
+        if (Directory.Exists(saveDir))
+        {
+            sources.Add(new SaveSource(SaveSourceKind.Documents, saveDir, OriginatingSteamRoot: null, Exists: true));
+        }
+        else if (Directory.Exists(gameRoot))
+        {
+            // The game has launched once but `save/` hasn't been written yet.
+            sources.Add(new SaveSource(SaveSourceKind.Documents, saveDir, OriginatingSteamRoot: null, Exists: false));
+        }
     }
 }
