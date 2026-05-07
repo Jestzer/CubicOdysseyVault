@@ -1,135 +1,116 @@
-# Handoff — pick up from Phase 4
+# Handoff — pick up from Phase 5
 
-> Updated 2026-05-06 at the end of the manual-snapshot phase.
+> Updated 2026-05-06 at the end of the screenshot/polish phase.
 > Read this first when resuming work.
 
 ## Where we are
 
-**Phases 1 (Skeleton), 2 (Discovery), 3 (Onboarding/settings), and
-4 (Manual snapshot + integrity + snapshot store) are done.** The
-solution builds clean (`dotnet build CubicOdysseyVault.sln` →
-0 warnings, 0 errors), `dotnet test` passes 50 tests, and the desktop
-app supports end-to-end manual snapshots with skip-if-unchanged
-semantics, integrity checking, and per-slot snapshot history.
+**Phases 1–5 are done.** Solution builds clean
+(`dotnet build CubicOdysseyVault.sln` → 0 warnings, 0 errors),
+`dotnet test` passes 58 tests, and the desktop app shows real save
+screenshots in slot cards + the right detail panel, with health
+badges (green/yellow/red dots + label pills) derived from the most
+recent snapshot, and color-coded trigger pills (Manual / Auto /
+Pre-restore) on snapshot history rows.
 
-What Phase 4 added:
+What Phase 5 added:
 
-- **`CubicOdysseyVault.Core/Integrity/`**:
-  - `SlotHealth` enum (Healthy / Suspicious / Corrupted).
-  - `IntegrityFileResult`, `IntegrityReport` records.
-  - `IntegrityChecker.InspectSlot(SaveSlot)` and `InspectAccount(SaveAccount)`
-    do a single-pass SHA-256 + NULL-block scan + TGA header validation
-    (image_type 2/10/3/11 accepted). Combined hash is a deterministic
-    SHA-256 over `<filename>:<file_hash>\n` lines (sorted by filename),
-    so reordering or rediscovering the same files yields the same hash —
-    the foundation of skip-if-unchanged.
-- **`CubicOdysseyVault.Core/Snapshots/`**:
-  - `SnapshotTrigger` (Manual / Auto / PreRestore), `Snapshot` POCO
-    (class with public properties so System.Text.Json round-trips
-    cleanly), `SnapshotManifest` wrapper.
-  - `SnapshotIndex` — JSON load/save with `*.tmp` + `File.Move(overwrite)`
-    atomic-rewrite pattern.
-  - `SnapshotStore` — folder layout helpers + `CopyFilesAtomically`
-    (write each file to `*.tmp`, rename to final name).
-  - `BackupResult` — success/skipped/snapshot/reason quad.
-  - `BackupService` — `SnapshotSlot` and `SnapshotAccount` orchestrate
-    integrity → skip-if-unchanged → atomic copy → manifest update.
-    Auto trigger aborts on Corrupted; Manual trigger goes through
-    (user explicitly chose to back up).
-- **`CubicOdysseyVault.UI/Services/BackupCoordinator.cs`** — async
-  facade over `BackupService`; recreates the inner service when the
-  backup root changes via settings.
-- **`CubicOdysseyVault.UI/ViewModels/`**:
-  - `SnapshotViewModel` — display wrapper for a `Snapshot`.
-  - `SaveSlotViewModel` / `SaveAccountViewModel` — gain
-    `BackUpNowCommand`, `IsBackingUp`, `Snapshots`
-    `ObservableCollection<SnapshotViewModel>`, `BackupStatus` for
-    inline feedback, `LastSnapshotText` derived for the slot card.
-  - `MainWindowViewModel` — owns a `BackupCoordinator`; tracks
-    `SelectedSlot` for the right detail panel; `DiscoverSync` now
-    wires each slot/account VM's `BackupRequested` callback and
-    pre-loads existing snapshots from the manifest so the history
-    is populated on launch.
-- **`CubicOdysseyVault.UI/Views/MainWindow.axaml`** — added a right
-  detail panel (340 px) that becomes visible when a slot is selected;
-  shows slot metadata, "Back up now" button, status line, and a
-  vertical snapshot history list. Slot grid moved from `ItemsControl`
-  to `ListBox` so `SelectedSlot` binding works. Each slot card now
-  has its own "Back up now" button. Account-level card has a
-  "Back up now" button + "Last backup: …" inline text.
-- **Tests** — 20 new tests across `IntegrityCheckerTests` (8),
-  `SnapshotIndexTests` (5), and `BackupServiceTests` (7). Total 50.
+- **`CubicOdysseyVault.Core/Tga/TgaDecoder.cs`** + `TgaImage` record:
+  hand-rolled uncompressed-RGB TGA decoder. Handles 24/32 bpp,
+  bottom-up + top-down origin, BGR→RGB swap, alpha passthrough on
+  32 bpp / forced 0xFF on 24 bpp. RLE (`image_type 10`) intentionally
+  rejected with `NotSupportedException` — flip on later if a save
+  shows up using it. `TryDecodeFile` returns null on any error so the
+  UI can fall through to a placeholder gracefully.
+- **`CubicOdysseyVault.UI/Services/TgaBitmapLoader.cs`**: takes a
+  `TgaImage` and produces an Avalonia `WriteableBitmap` in
+  `Rgba8888` / `Unpremul`. Handles row-stride mismatch (`fb.RowBytes`
+  may not equal `width*4`) with row-by-row copies.
+- **`SaveSlotViewModel.Screenshot`** (`Bitmap?`): decoded once in the
+  ctor from `screenshot.tga`. The VM is constructed on the discovery
+  worker thread, which is fine — `WriteableBitmap` construction
+  doesn't require the UI thread.
+- **`SaveSlotViewModel` health flags**: `LatestHealth` (nullable
+  `SlotHealth`), `LatestHealthLabel`, plus four bool flags
+  (`IsHealthHealthy/Suspicious/Corrupted/Unchecked`) for `IsVisible`
+  binding without a value converter. Re-fired on `Snapshots` change.
+- **`SnapshotViewModel` trigger flags**: `IsTriggerManual/Auto/PreRestore`,
+  plus a friendlier `TriggerLabel` (`"Pre-restore"` instead of the
+  enum literal `"PreRestore"`).
+- **`MainWindow.axaml`** updates:
+  - Slot card grew to 240×232 to host a 92 px thumbnail (`Image
+    Stretch="UniformToFill"` for 2.6:1 → 2.4:1 image ratio — minor
+    crop) with a colored health-dot `Ellipse` overlaid in the
+    top-right.
+  - Detail panel got a hero screenshot
+    (`Stretch="Uniform" MaxHeight="180"`) and a health pill next to
+    the source label.
+  - Snapshot history rows now lead with a colored trigger pill
+    (Accent / HealthHealthy / HealthSuspicious for Manual / Auto /
+    Pre-restore).
+- **8 new TgaDecoder tests** (24/32 bpp, top-down + bottom-up,
+  alpha forcing, RLE rejection, truncation, missing file). Total: 58.
 
-## What's next: Phase 5 (TGA decoder + slot UI polish)
+## What's next: Phase 6 (file watcher + retention policy)
 
-Per `docs/PLAN.md` item 5:
+Per `docs/PLAN.md` item 6:
 
-1. **`Tga/TgaDecoder.cs`** in `CubicOdysseyVault.Core/Tga/` — minimal
-   uncompressed-TGA → byte[] RGBA decoder. Real saves on this
-   machine use image_type 2 (uncompressed RGB), so the
-   uncompressed-only path is enough for now. Add an RLE branch only
-   if image_type 10 turns up later.
-2. **Slot card thumbnails** — replace the placeholder `Rectangle` in
-   the slot card with an `<Image>` whose source is decoded from
-   `screenshot.tga`. Lazy-load on slot enumeration; cache decoded
-   bitmaps per slot so refreshes don't re-decode.
-3. **Slot card health badge** — small colored dot using the
-   `HealthHealthy` / `HealthSuspicious` / `HealthCorrupted` brushes
-   from `DarkTheme.axaml`. Health derived from the most recent
-   snapshot in the manifest; "Unchecked" when no snapshots exist
-   (gray dot).
-4. **Detail panel screenshot** — full-size screenshot at the top of
-   the right detail panel.
-5. **Polish on snapshot history rows** — trigger badge color
-   (Manual/Auto/PreRestore), hover states, tag display.
+1. **`CubicOdysseyVault.Core/Watching/SaveWatcher.cs`** — one
+   `FileSystemWatcher` per `SaveSource.RootPath`, recursive, filters
+   `*.tmp`. Coalesces events into a per-slot debounce window
+   (default 10 s, configurable via `AppSettings.WatcherDebounceSeconds`),
+   then enqueues an Auto snapshot.
+2. **`CubicOdysseyVault.Core/Snapshots/RetentionPolicy.cs`** —
+   tiered/generational pruning. Defaults already wired in
+   `AppSettings`: 24 hourly + 14 daily + 8 weekly auto, plus
+   `Manual`/`PreRestore`/tagged forever. Run after each successful
+   snapshot.
+3. **`BackupService` integration** — call retention pruning after
+   each snapshot is written. Auto trigger plus existing
+   `Health == Corrupted` guard means a watcher event on a
+   half-written file won't promote the corruption into the store.
+4. **`MainWindowViewModel`** — own a `SaveWatcher` per discovered
+   source, wire its enqueue callback to
+   `BackupCoordinator.SnapshotSlotAsync(slot, Auto)`. Only run if
+   `_settings.WatcherEnabled`. Tear down + recreate when settings
+   change.
+5. **UI**: status bar shows watcher state ("Watching N sources" /
+   "Idle"); a small "auto" indicator on the slot card after an Auto
+   snapshot lands.
+6. **Tests**: `RetentionPolicyTests` with synthesized snapshot
+   timelines (assert correct survivors after pruning); `SaveWatcher`
+   harder to unit-test without flakiness — at minimum a debounce
+   smoke test against a temp dir.
 
-Optional in Phase 5 if time permits, otherwise Phase 6:
+## Phase 5 design notes worth remembering
 
-6. Steam display name resolution from
-   `<steam-root>/userdata/<SteamID32>/config/localconfig.vdf`. Sidebar
-   currently shows the raw `SteamID32`.
-
-## Phase 4 design notes worth remembering
-
-- **Combined hash determinism**: The combined slot hash is the
-  SHA-256 of `<name>:<filehash>\n` lines sorted by filename. This is
-  what skip-if-unchanged compares against — `BackupService` reads the
-  manifest's most recent snapshot and bails out if its
-  `CombinedHash` matches the current one. Without the deterministic
-  ordering, the watcher in Phase 6 would create a snapshot on every
-  enumeration even when nothing changed.
-- **Auto vs Manual on Corrupted**: `BackupService.SnapshotSlot`
-  rejects an Auto trigger against a Corrupted slot
-  (`null` files = interrupted in-place write). Manual triggers are
-  allowed through — the user explicitly chose to capture even a
-  damaged state, and might want it for forensics. Same rule applies
-  to `SnapshotAccount`. Tests: `SnapshotSlot_AutoTriggerOnCorruptedSlot_Aborts`
-  vs `SnapshotSlot_ManualTriggerOnCorruptedSlot_StillAllows`.
-- **Atomic file ops**: `SnapshotStore.CopyFilesAtomically` writes each
-  file as `<name>.tmp` and `File.Move(overwrite: true)`s into place.
-  `SnapshotIndex.Save` does the same for the manifest. POSIX
-  guarantees atomicity; Windows uses MoveFileEx replace semantics.
-  Either way, an interrupted snapshot leaves the previous good state
-  intact (worst case: a `.tmp` file lying around, which the next
-  copy will overwrite).
-- **Snapshot folder name format**: `<UTC ISO8601 with hyphens>__<6-hex>`
-  e.g. `2026-05-07T00-00-47Z__f50583`. ISO8601 with `:` is invalid in
-  Windows filenames, hence the dashes. The 6-hex suffix comes from
-  the slot's combined hash; it's both human-readable
-  ("did anything change?") and disambiguates same-second snapshots.
-- **Account-level snapshots live under `<backupRoot>/snapshots/<SteamID32>/_account/`**;
-  slot snapshots under `<backupRoot>/snapshots/<SteamID32>/<accountFolder>/<slot>/`.
-  `_account` is a sentinel name that can't collide with a real
-  account folder (game uses `0`/`1`).
-- **`BackupCoordinator.UpdateBackupRoot`** is called from
-  `MainWindowViewModel.ApplySettings` whenever the user changes the
-  backup root via the Settings dialog. Inner `BackupService` is
-  swapped wholesale (cheap; no shared state to migrate).
+- **Why no IBrush converter**: I went with four `IsHealthXxx` bools +
+  conditional `IsVisible` rather than a value converter, partly
+  because compiled bindings prefer concrete types and partly because
+  a converter adds an extra registered resource for one trivial
+  enum→brush mapping. Same approach for `IsTriggerXxx` on snapshots.
+  If a fourth or fifth state surfaces and the IsVisible-soup
+  multiplies, refactor to a small `Converters/EnumToBrushConverter`.
+- **Bitmap thread safety**: `WriteableBitmap` constructed on the
+  discovery worker thread is fine — the lock/copy is local to that
+  thread. Avalonia binds it to UI when the VM gets added to the
+  main collection. If a future Phase needs to swap the bitmap
+  reactively (e.g. lazy load on selection), do it on the UI thread.
+- **TGA decoder is one-shot**: `Decode` allocates a new
+  `byte[width*height*4]` per call. ~10 slots × 438 KB = ~4.4 MB
+  allocated per refresh. Acceptable; the bytes are released as soon
+  as `WriteableBitmap` finishes copying. No need to pool buffers.
+- **Health = "latest snapshot's health"**: not "current slot's health"
+  — computing live integrity on every refresh would mean ~50 MB
+  read on this machine. Phase 6 may add a "Re-check now" button or
+  hash on first selection.
+- **Slot card thumbnail crop**: aspect ratio mismatch between
+  240×92 (2.6:1) and 512×214 (2.4:1) means `UniformToFill` shaves a
+  few pixels off left/right. Acceptable — the screenshot is
+  context, not content. Detail panel uses `Uniform` so the full
+  image is visible there.
 
 ## Style template — non-negotiable (unchanged)
-
-All Avalonia code in this project must mirror the patterns in
-`/run/media/james/SSD/My_Programs_SSD/OpenFATX/`:
 
 - .NET 8, Avalonia 11.2.3, CommunityToolkit.Mvvm 8.4.0, xUnit 2.4.2
 - `[ObservableProperty]` for VM state, `[RelayCommand]` for commands
@@ -143,23 +124,25 @@ All Avalonia code in this project must mirror the patterns in
 ## Critical files in this repo
 
 ```
-PLAN.md                                           full design spec (this dir)
-HANDOFF.md                                         this file
-../Directory.Build.props                           net8.0 + Avalonia 11.2.3
-../CubicOdysseyVault.Core/Constants.cs             AppId + path constants + candidate-roots tables
-../CubicOdysseyVault.Core/Steam/                   SteamRoot, SteamLocator, LibraryFoldersVdfParser
-../CubicOdysseyVault.Core/Saves/                   SaveSource, SaveAccount, SaveSlot, SaveLayout, SaveLocator, SaveSlotEnumerator
-../CubicOdysseyVault.Core/Integrity/               SlotHealth, IntegrityChecker, IntegrityReport
-../CubicOdysseyVault.Core/Snapshots/               Snapshot, SnapshotTrigger, SnapshotIndex, SnapshotStore, BackupService, BackupResult
-../CubicOdysseyVault.UI/Services/AppSettingsService.cs   JSON persistence + AppSettings record
-../CubicOdysseyVault.UI/Services/BackupCoordinator.cs    async facade over BackupService
-../CubicOdysseyVault.UI/Themes/DarkTheme.axaml     palette
-../CubicOdysseyVault.UI/ViewModels/                MainWindow / SteamUser / SaveAccount / SaveSlot / SaveSource / Settings / Onboarding / Snapshot VMs
-../CubicOdysseyVault.UI/Views/MainWindow.axaml     toolbar + sidebar + slot WrapPanel + right detail panel
-../CubicOdysseyVault.UI/Views/SettingsDialog.axaml modal config dialog
+PLAN.md                                            full design spec (this dir)
+HANDOFF.md                                          this file
+../Directory.Build.props                            net8.0 + Avalonia 11.2.3
+../CubicOdysseyVault.Core/Constants.cs              AppId + path constants + candidate-roots tables
+../CubicOdysseyVault.Core/Steam/                    SteamRoot, SteamLocator, LibraryFoldersVdfParser
+../CubicOdysseyVault.Core/Saves/                    SaveSource, SaveAccount, SaveSlot, SaveLayout, SaveLocator, SaveSlotEnumerator
+../CubicOdysseyVault.Core/Integrity/                SlotHealth, IntegrityChecker, IntegrityReport
+../CubicOdysseyVault.Core/Snapshots/                Snapshot, SnapshotTrigger, SnapshotIndex, SnapshotStore, BackupService, BackupResult
+../CubicOdysseyVault.Core/Tga/                      TgaImage, TgaDecoder
+../CubicOdysseyVault.UI/Services/AppSettingsService.cs    JSON persistence + AppSettings record
+../CubicOdysseyVault.UI/Services/BackupCoordinator.cs     async facade over BackupService
+../CubicOdysseyVault.UI/Services/TgaBitmapLoader.cs       TgaImage → Avalonia WriteableBitmap
+../CubicOdysseyVault.UI/Themes/DarkTheme.axaml      palette
+../CubicOdysseyVault.UI/ViewModels/                 MainWindow / SteamUser / SaveAccount / SaveSlot / SaveSource / Settings / Onboarding / Snapshot VMs
+../CubicOdysseyVault.UI/Views/MainWindow.axaml      toolbar + sidebar + slot WrapPanel + right detail panel + thumbnails + health badges
+../CubicOdysseyVault.UI/Views/SettingsDialog.axaml  modal config dialog
 ../CubicOdysseyVault.UI/Views/OnboardingDialog.axaml first-run wizard
-../CubicOdysseyVault.Desktop/Program.cs            entry point
-../CubicOdysseyVault.Tests/                        50 tests, all passing
+../CubicOdysseyVault.Desktop/Program.cs             entry point
+../CubicOdysseyVault.Tests/                         58 tests, all passing
 ```
 
 ## Open assumptions still unvalidated
@@ -168,23 +151,19 @@ HANDOFF.md                                         this file
   `remotecache.vdf`. Validate when Cloud sync first materializes the
   `remote/` directory on this machine.
 - **TGA RLE variant**: only uncompressed RGB observed
-  (image_type 0x02). Phase 5's TGA decoder starts uncompressed-only;
+  (image_type 0x02). `TgaDecoder` rejects RLE with a clear error;
   add an RLE branch if image_type 0x0A surfaces.
 - **Two-account-folder semantics**: only `0/` exists on this account.
   Plan enumerates dynamically.
-- **Slot file naming variants**: snapshot pipeline captures every
-  file in a slot folder verbatim — no name filter — so the captured
-  slot will round-trip even if the game adds new file types later.
 
-## Things Phase 4 deliberately deferred
+## Things deferred from Phase 5 to later
 
-- **Live integrity check on enumeration**: would require reading
-  every byte of every slot on every refresh (~50 MB on this
-  machine). Currently health is only known after a snapshot has been
-  taken. Phase 6 may hash on-demand when the user selects a slot.
-- **Health badge on slot cards**: same reason — surfacing health
-  without computing it is misleading. Comes in Phase 5 via "health
-  of latest snapshot" or in Phase 6 via lazy computation.
+- **Steam display name resolution** from
+  `<root>/userdata/<SteamID32>/config/localconfig.vdf` — sidebar
+  still shows raw `SteamID32`. Small VDF parsing job; can land
+  alongside Phase 6 watcher work or as a standalone polish pass.
+- **Live "current state" health** (vs. "latest snapshot health"):
+  Phase 6 may add a "Re-check" action that runs `IntegrityChecker`
+  on demand against the live slot.
 - **Restore flow + game-running guard**: Phase 7.
-- **Auto-snapshot via FileSystemWatcher + retention pruning**: Phase 6.
 - **Tag/rename/delete snapshots in UI**: Phase 8.

@@ -1,9 +1,12 @@
 using System.Collections.ObjectModel;
 using System.Linq;
+using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CubicOdysseyVault.Core.Integrity;
 using CubicOdysseyVault.Core.Saves;
 using CubicOdysseyVault.Core.Snapshots;
+using CubicOdysseyVault.UI.Services;
 
 namespace CubicOdysseyVault.UI.ViewModels;
 
@@ -29,8 +32,12 @@ public partial class SaveSlotViewModel : ViewModelBase
         .FirstOrDefault(f => string.Equals(f.FileName, "screenshot.tga", StringComparison.OrdinalIgnoreCase))
         ?.FullPath;
 
+    public Bitmap? Screenshot { get; }
+
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(LastSnapshotText), nameof(SnapshotCount))]
+    [NotifyPropertyChangedFor(
+        nameof(LastSnapshotText), nameof(SnapshotCount), nameof(LatestHealth), nameof(LatestHealthLabel),
+        nameof(IsHealthHealthy), nameof(IsHealthSuspicious), nameof(IsHealthCorrupted), nameof(IsHealthUnchecked))]
     private ObservableCollection<SnapshotViewModel> _snapshots = new();
 
     [ObservableProperty]
@@ -47,9 +54,25 @@ public partial class SaveSlotViewModel : ViewModelBase
 
     public int SnapshotCount => Snapshots.Count;
 
+    public SlotHealth? LatestHealth => Snapshots.Count == 0 ? null : Snapshots[0].Snapshot.Health;
+
+    public string LatestHealthLabel => LatestHealth switch
+    {
+        SlotHealth.Healthy => "Healthy",
+        SlotHealth.Suspicious => "Suspicious",
+        SlotHealth.Corrupted => "Corrupted",
+        _ => "Unchecked",
+    };
+
+    public bool IsHealthHealthy => LatestHealth == SlotHealth.Healthy;
+    public bool IsHealthSuspicious => LatestHealth == SlotHealth.Suspicious;
+    public bool IsHealthCorrupted => LatestHealth == SlotHealth.Corrupted;
+    public bool IsHealthUnchecked => LatestHealth == null;
+
     public SaveSlotViewModel(SaveSlot slot)
     {
         Slot = slot;
+        Screenshot = TgaBitmapLoader.TryLoad(ScreenshotPath);
     }
 
     public void SetSnapshots(IEnumerable<Snapshot> snapshots)
@@ -59,6 +82,12 @@ public partial class SaveSlotViewModel : ViewModelBase
             Snapshots.Add(new SnapshotViewModel(s));
         OnPropertyChanged(nameof(LastSnapshotText));
         OnPropertyChanged(nameof(SnapshotCount));
+        OnPropertyChanged(nameof(LatestHealth));
+        OnPropertyChanged(nameof(LatestHealthLabel));
+        OnPropertyChanged(nameof(IsHealthHealthy));
+        OnPropertyChanged(nameof(IsHealthSuspicious));
+        OnPropertyChanged(nameof(IsHealthCorrupted));
+        OnPropertyChanged(nameof(IsHealthUnchecked));
     }
 
     [RelayCommand(CanExecute = nameof(CanBackUp))]
@@ -81,6 +110,8 @@ public partial class SaveSlotViewModel : ViewModelBase
                     Snapshots.Insert(0, new SnapshotViewModel(result.Snapshot));
                     OnPropertyChanged(nameof(LastSnapshotText));
                     OnPropertyChanged(nameof(SnapshotCount));
+                    OnPropertyChanged(nameof(LatestHealth));
+                    OnPropertyChanged(nameof(LatestHealthLabel));
                     BackupStatus = $"Saved at {result.Snapshot.CapturedAtUtc.ToLocalTime():HH:mm:ss}";
                 }
             }

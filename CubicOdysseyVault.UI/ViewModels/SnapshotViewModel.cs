@@ -8,7 +8,16 @@ public partial class SnapshotViewModel : ViewModelBase
     public Snapshot Snapshot { get; }
     public string Id => Snapshot.Id;
     public string CapturedAtText => Snapshot.CapturedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
-    public string TriggerLabel => Snapshot.Trigger.ToString();
+    public string TriggerLabel => Snapshot.Trigger switch
+    {
+        SnapshotTrigger.Manual => "Manual",
+        SnapshotTrigger.Auto => "Auto",
+        SnapshotTrigger.PreRestore => "Pre-restore",
+        _ => Snapshot.Trigger.ToString(),
+    };
+    public bool IsTriggerManual => Snapshot.Trigger == SnapshotTrigger.Manual;
+    public bool IsTriggerAuto => Snapshot.Trigger == SnapshotTrigger.Auto;
+    public bool IsTriggerPreRestore => Snapshot.Trigger == SnapshotTrigger.PreRestore;
     public string? Tag => Snapshot.Tag;
     public string FormattedSize => FormatBytes(Snapshot.TotalBytes);
     public string HealthLabel => Snapshot.Health.ToString();
