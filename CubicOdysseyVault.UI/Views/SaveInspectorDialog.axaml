@@ -39,27 +39,17 @@
 
             <!-- ========== SUMMARY ========== -->
             <TabItem Header="Summary">
-                <ScrollViewer Padding="20" DataContext="{Binding Summary}" x:DataType="vm:SaveSummaryViewModel">
-                    <StackPanel Spacing="16" MaxWidth="900" HorizontalAlignment="Left">
+                <ScrollViewer Padding="{StaticResource PadXl}" DataContext="{Binding Summary}" x:DataType="vm:SaveSummaryViewModel">
+                    <StackPanel Spacing="{StaticResource SpaceLg}" MaxWidth="900" HorizontalAlignment="Left">
                         <!-- Character + timestamp -->
-                        <Border Background="{StaticResource SidebarBlockBrush}"
-                                BorderBrush="{StaticResource SeparatorBrush}"
-                                BorderThickness="1"
-                                CornerRadius="4"
-                                Padding="16">
+                        <Border Classes="card" Padding="{StaticResource PadLg}">
                             <Grid ColumnDefinitions="*,*">
-                                <StackPanel Grid.Column="0" Spacing="2">
-                                    <TextBlock Text="CHARACTER"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                               FontSize="10" FontWeight="SemiBold" />
-                                    <TextBlock Text="{Binding CharacterName}"
-                                               Foreground="{StaticResource TextPrimaryBrush}"
-                                               FontSize="20" FontWeight="SemiBold" />
+                                <StackPanel Grid.Column="0" Spacing="{StaticResource SpaceXs}">
+                                    <TextBlock Classes="label" Text="CHARACTER" />
+                                    <TextBlock Classes="display" Text="{Binding CharacterName}" />
                                 </StackPanel>
-                                <StackPanel Grid.Column="1" Spacing="2" HorizontalAlignment="Right">
-                                    <TextBlock Text="SAVED AT"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                               FontSize="10" FontWeight="SemiBold"
+                                <StackPanel Grid.Column="1" Spacing="{StaticResource SpaceXs}" HorizontalAlignment="Right">
+                                    <TextBlock Classes="label" Text="SAVED AT"
                                                HorizontalAlignment="Right" />
                                     <TextBlock Text="{Binding SavedAtText}"
                                                Foreground="{StaticResource TextPrimaryBrush}"
@@ -73,18 +63,18 @@
                                 BorderBrush="{StaticResource HealthSuspiciousBrush}"
                                 BorderThickness="1"
                                 CornerRadius="4"
-                                Padding="12"
+                                Padding="{StaticResource PadMd}"
                                 IsVisible="{Binding HasWarnings}">
-                            <StackPanel Spacing="2">
-                                <TextBlock Text="Notes"
-                                           Foreground="{StaticResource HealthSuspiciousBrush}"
-                                           FontSize="11" FontWeight="SemiBold" />
+                            <StackPanel Spacing="{StaticResource SpaceXs}">
+                                <TextBlock Classes="label"
+                                           Text="NOTES"
+                                           Foreground="{StaticResource HealthSuspiciousBrush}" />
                                 <ItemsControl ItemsSource="{Binding Warnings}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding}"
-                                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                                       FontSize="11"
+                                            <TextBlock Classes="body-sm"
+                                                       Text="{Binding}"
+                                                       Foreground="{StaticResource HealthSuspiciousBrush}"
                                                        TextWrapping="Wrap" />
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
@@ -97,28 +87,23 @@
                                       IsVisible="{Binding HasInventories}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:InventoryContainerViewModel">
-                                    <Border Background="{StaticResource SidebarBlockBrush}"
-                                            BorderBrush="{StaticResource SeparatorBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="4"
-                                            Padding="14"
+                                    <Border Classes="card"
+                                            Padding="{StaticResource PadLg}"
                                             Margin="0,0,0,12">
-                                        <StackPanel Spacing="8">
+                                        <StackPanel Spacing="{StaticResource SpaceSm}">
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <TextBlock Grid.Column="0"
-                                                           Text="{Binding DisplayName}"
-                                                           Foreground="{StaticResource TextPrimaryBrush}"
-                                                           FontSize="15" FontWeight="SemiBold" />
+                                                           Classes="title"
+                                                           Text="{Binding DisplayName}" />
                                                 <TextBlock Grid.Column="1"
+                                                           Classes="label"
                                                            Text="{Binding Subtitle}"
-                                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                                           FontSize="11"
                                                            VerticalAlignment="Center" />
                                             </Grid>
                                             <ItemsControl ItemsSource="{Binding Items}">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate x:DataType="vm:InventoryItemViewModel">
-                                                        <Grid ColumnDefinitions="44,60,38,*,Auto" Margin="0,3">
+                                                        <Grid ColumnDefinitions="44,Auto,38,*,Auto" Margin="0,3">
                                                             <Border Grid.Column="0"
                                                                     Width="40" Height="40"
                                                                     Background="{StaticResource SidebarBackgroundBrush}"
@@ -131,16 +116,40 @@
                                                                 <Image Source="{Binding IconBitmap}"
                                                                        Stretch="Uniform" />
                                                             </Border>
-                                                            <Border Grid.Column="1"
-                                                                    Background="{Binding CategoryBrush}"
-                                                                    CornerRadius="3"
-                                                                    Padding="4,2"
-                                                                    VerticalAlignment="Center"
-                                                                    HorizontalAlignment="Left">
-                                                                <TextBlock Text="{Binding CategoryAbbreviation}"
-                                                                           Foreground="White"
-                                                                           FontSize="10" FontWeight="SemiBold" />
-                                                            </Border>
+                                                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                                <Border Classes="pill cat-equipment"
+                                                                        IsVisible="{Binding IsCatEquipment}">
+                                                                    <TextBlock Text="{Binding CategoryAbbreviation}" />
+                                                                </Border>
+                                                                <Border Classes="pill cat-weapon"
+                                                                        IsVisible="{Binding IsCatWeapon}">
+                                                                    <TextBlock Text="{Binding CategoryAbbreviation}" />
+                                                                </Border>
+                                                                <Border Classes="pill cat-resource"
+                                                                        IsVisible="{Binding IsCatResource}">
+                                                                    <TextBlock Text="{Binding CategoryAbbreviation}" />
+                                                                </Border>
+                                                                <Border Classes="pill cat-shipcomponent"
+                                                                        IsVisible="{Binding IsCatShipComponent}">
+                                                                    <TextBlock Text="{Binding CategoryAbbreviation}" />
+                                                                </Border>
+                                                                <Border Classes="pill cat-deployable"
+                                                                        IsVisible="{Binding IsCatDeployable}">
+                                                                    <TextBlock Text="{Binding CategoryAbbreviation}" />
+                                                                </Border>
+                                                                <Border Classes="pill cat-key"
+                                                                        IsVisible="{Binding IsCatKey}">
+                                                                    <TextBlock Text="{Binding CategoryAbbreviation}" />
+                                                                </Border>
+                                                                <Border Classes="pill cat-ship"
+                                                                        IsVisible="{Binding IsCatShip}">
+                                                                    <TextBlock Text="{Binding CategoryAbbreviation}" />
+                                                                </Border>
+                                                                <Border Classes="pill cat-other"
+                                                                        IsVisible="{Binding IsCatOther}">
+                                                                    <TextBlock Text="{Binding CategoryAbbreviation}" />
+                                                                </Border>
+                                                            </StackPanel>
                                                             <Border Grid.Column="2"
                                                                     BorderBrush="{StaticResource SeparatorBrush}"
                                                                     BorderThickness="1"
@@ -155,9 +164,9 @@
                                                                            FontSize="10" FontWeight="SemiBold" />
                                                             </Border>
                                                             <TextBlock Grid.Column="3"
+                                                                       Classes="body-sm"
                                                                        Text="{Binding DisplayName}"
                                                                        Foreground="{StaticResource TextPrimaryBrush}"
-                                                                       FontSize="12"
                                                                        VerticalAlignment="Center"
                                                                        Margin="10,0,0,0"
                                                                        TextWrapping="Wrap" />
@@ -180,16 +189,11 @@
                         </ItemsControl>
 
                         <!-- Ships -->
-                        <Border Background="{StaticResource SidebarBlockBrush}"
-                                BorderBrush="{StaticResource SeparatorBrush}"
-                                BorderThickness="1"
-                                CornerRadius="4"
-                                Padding="14"
+                        <Border Classes="card"
+                                Padding="{StaticResource PadLg}"
                                 IsVisible="{Binding HasShips}">
-                            <StackPanel Spacing="8">
-                                <TextBlock Text="Ships"
-                                           Foreground="{StaticResource TextPrimaryBrush}"
-                                           FontSize="15" FontWeight="SemiBold" />
+                            <StackPanel Spacing="{StaticResource SpaceSm}">
+                                <TextBlock Classes="label" Text="SHIPS" />
                                 <ItemsControl ItemsSource="{Binding Ships}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>

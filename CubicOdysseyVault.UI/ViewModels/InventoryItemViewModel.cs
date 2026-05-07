@@ -30,6 +30,16 @@ public sealed class InventoryItemViewModel : ViewModelBase
     public bool HasTier => Item.Tier > 0;
     public string TypeRaw => Item.Metadata?.TypeRaw ?? "";
 
+    // Category booleans for pill class bindings in AXAML
+    public bool IsCatEquipment    => Item.Category == ItemCategory.Equipment;
+    public bool IsCatWeapon       => Item.Category == ItemCategory.Weapon;
+    public bool IsCatResource     => Item.Category == ItemCategory.Resource;
+    public bool IsCatShipComponent => Item.Category == ItemCategory.ShipComponent;
+    public bool IsCatDeployable   => Item.Category == ItemCategory.Deployable;
+    public bool IsCatKey          => Item.Category == ItemCategory.Key;
+    public bool IsCatShip         => Item.Category == ItemCategory.Ship;
+    public bool IsCatOther        => Item.Category == ItemCategory.Other;
+
     public InventoryItemViewModel(InventoryItem item, SpriteAtlas? atlas = null)
     {
         Item = item;
