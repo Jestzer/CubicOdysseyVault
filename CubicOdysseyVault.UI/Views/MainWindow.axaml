@@ -155,128 +155,83 @@
 
         <!-- Detail panel (right; visible when slot is selected) -->
         <Border DockPanel.Dock="Right"
-                Width="360"
+                Width="400"
                 Background="{StaticResource SidebarBackgroundBrush}"
-                BorderBrush="{StaticResource SeparatorBrush}"
+                BorderBrush="{StaticResource BorderSubtleBrush}"
                 BorderThickness="1,0,0,0"
-                Padding="16"
+                Padding="{StaticResource PadXl}"
                 IsVisible="{Binding SelectedSlot, Converter={x:Static ObjectConverters.IsNotNull}}">
             <ScrollViewer DataContext="{Binding SelectedSlot}" x:DataType="vm:SaveSlotViewModel">
-                <StackPanel Spacing="14">
+                <StackPanel Spacing="{StaticResource SpaceLg}">
                     <!-- Hero screenshot -->
-                    <Border CornerRadius="4"
-                            BorderBrush="{StaticResource SeparatorBrush}"
+                    <Border CornerRadius="{StaticResource RadiusLg}"
+                            BorderBrush="{StaticResource BorderDefaultBrush}"
                             BorderThickness="1"
                             ClipToBounds="True"
-                            Background="{StaticResource SidebarBackgroundBrush}">
-                        <Image Source="{Binding Screenshot}"
-                               Stretch="Uniform"
-                               MaxHeight="180" />
+                            Background="{StaticResource SidebarBackgroundBrush}"
+                            BoxShadow="0 4 14 #80000000">
+                        <Image Source="{Binding Screenshot}" Stretch="Uniform" MaxHeight="200"/>
                     </Border>
 
-                    <StackPanel Spacing="2">
-                        <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
-                                   FontSize="10" FontWeight="SemiBold">
-                            <Run Text="SLOT "/><Run Text="{Binding SlotName}"/><Run Text=" / ACCT "/><Run Text="{Binding AccountFolderName}"/>
+                    <!-- Title + metadata -->
+                    <StackPanel Spacing="{StaticResource SpaceXs}">
+                        <TextBlock Classes="label">
+                            <Run Text="SLOT "/><Run Text="{Binding SlotName}"/><Run Text=" · ACCT "/><Run Text="{Binding AccountFolderName}"/>
                         </TextBlock>
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <TextBlock Text="{Binding SourceLabel}"
-                                       Foreground="{StaticResource TextPrimaryBrush}"
-                                       FontSize="13" FontWeight="SemiBold" />
-                            <Border CornerRadius="2" Padding="5,1" VerticalAlignment="Center"
-                                    Background="{StaticResource HealthHealthyBrush}"
+                        <Grid ColumnDefinitions="Auto,Auto,*">
+                            <TextBlock Grid.Column="0" Classes="heading" Text="{Binding SourceLabel}" Margin="0,0,8,0"/>
+                            <Border Grid.Column="1" Classes="pill health-ok"
+                                    VerticalAlignment="Center"
                                     IsVisible="{Binding IsHealthHealthy}">
-                                <TextBlock Text="HEALTHY" Foreground="White" FontSize="9" FontWeight="SemiBold" />
+                                <TextBlock Text="HEALTHY"/>
                             </Border>
-                            <Border CornerRadius="2" Padding="5,1" VerticalAlignment="Center"
-                                    Background="{StaticResource HealthSuspiciousBrush}"
+                            <Border Grid.Column="1" Classes="pill health-sus"
+                                    VerticalAlignment="Center"
                                     IsVisible="{Binding IsHealthSuspicious}">
-                                <TextBlock Text="SUSPICIOUS" Foreground="Black" FontSize="9" FontWeight="SemiBold" />
+                                <TextBlock Text="SUSPECT"/>
                             </Border>
-                            <Border CornerRadius="2" Padding="5,1" VerticalAlignment="Center"
-                                    Background="{StaticResource HealthCorruptedBrush}"
+                            <Border Grid.Column="1" Classes="pill health-bad"
+                                    VerticalAlignment="Center"
                                     IsVisible="{Binding IsHealthCorrupted}">
-                                <TextBlock Text="CORRUPTED" Foreground="White" FontSize="9" FontWeight="SemiBold" />
+                                <TextBlock Text="CORRUPTED"/>
                             </Border>
-                        </StackPanel>
-                        <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="11">
+                        </Grid>
+                        <TextBlock Classes="body-sm">
                             <Run Text="{Binding FileCount}"/><Run Text=" files · "/><Run Text="{Binding FormattedSize}"/>
                         </TextBlock>
-                        <TextBlock Text="{Binding LastWriteText}"
-                                   Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" />
+                        <TextBlock Classes="body-sm" Text="{Binding LastWriteText}"/>
                     </StackPanel>
 
-                    <Button Content="Back up now"
-                            Command="{Binding BackUpNowCommand}"
-                            HorizontalAlignment="Stretch" />
-                    <Button Content="Inspect save data..."
-                            Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).InspectSelectedSlotCommand}"
-                            HorizontalAlignment="Stretch" />
+                    <!-- Action row -->
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource SpaceSm}">
+                        <Button Content="Back up now"
+                                Classes="primary"
+                                Command="{Binding BackUpNowCommand}"/>
+                        <Button Content="Inspect save data..."
+                                Classes="secondary"
+                                Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).InspectSelectedSlotCommand}"/>
+                    </StackPanel>
                     <TextBlock Text="{Binding BackupStatus}"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               FontSize="11"
+                               Classes="body-sm"
                                TextWrapping="Wrap"
-                               IsVisible="{Binding BackupStatus, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                               IsVisible="{Binding BackupStatus, Converter={x:Static ObjectConverters.IsNotNull}}"/>
 
-                    <StackPanel Spacing="6">
-                        <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
-                                   FontSize="10" FontWeight="SemiBold">
-                            <Run Text="SNAPSHOT HISTORY ("/><Run Text="{Binding SnapshotCount}"/><Run Text=")"/>
-                        </TextBlock>
+                    <!-- Snapshot history -->
+                    <StackPanel Spacing="{StaticResource SpaceSm}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Text="SNAPSHOT HISTORY" Classes="label"/>
+                            <TextBlock Grid.Column="1" Classes="numeric" FontSize="11"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Text="{Binding SnapshotCount}"/>
+                        </Grid>
                         <TextBlock Text="No snapshots yet. Click Back up now to create one."
-                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                   FontSize="11"
+                                   Classes="body-sm"
                                    TextWrapping="Wrap"
-                                   IsVisible="{Binding !SnapshotCount}" />
-                        <ItemsControl ItemsSource="{Binding Snapshots}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:SnapshotViewModel">
-                                    <Border Background="{StaticResource SidebarBlockBrush}"
-                                            BorderBrush="{StaticResource SeparatorBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="3"
-                                            Padding="10"
-                                            Margin="0,0,0,6">
-                                        <StackPanel Spacing="4">
-                                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <Border CornerRadius="2" Padding="5,1" VerticalAlignment="Center"
-                                                        Background="{StaticResource AccentBrush}"
-                                                        IsVisible="{Binding IsTriggerManual}">
-                                                    <TextBlock Text="MANUAL" Foreground="White" FontSize="9" FontWeight="SemiBold" />
-                                                </Border>
-                                                <Border CornerRadius="2" Padding="5,1" VerticalAlignment="Center"
-                                                        Background="{StaticResource HealthHealthyBrush}"
-                                                        IsVisible="{Binding IsTriggerAuto}">
-                                                    <TextBlock Text="AUTO" Foreground="White" FontSize="9" FontWeight="SemiBold" />
-                                                </Border>
-                                                <Border CornerRadius="2" Padding="5,1" VerticalAlignment="Center"
-                                                        Background="{StaticResource HealthSuspiciousBrush}"
-                                                        IsVisible="{Binding IsTriggerPreRestore}">
-                                                    <TextBlock Text="PRE-RESTORE" Foreground="Black" FontSize="9" FontWeight="SemiBold" />
-                                                </Border>
-                                                <TextBlock Text="{Binding CapturedAtText}"
-                                                           Foreground="{StaticResource TextPrimaryBrush}"
-                                                           FontSize="12" FontWeight="SemiBold"
-                                                           VerticalAlignment="Center" />
-                                            </StackPanel>
-                                            <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
-                                                       FontSize="11">
-                                                <Run Text="{Binding FormattedSize}"/><Run Text=" · "/><Run Text="{Binding HealthLabel}"/>
-                                            </TextBlock>
-                                            <TextBlock Text="{Binding Tag}"
-                                                       Foreground="{StaticResource AccentBrush}"
-                                                       FontSize="11" FontStyle="Italic"
-                                                       IsVisible="{Binding Tag, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                                            <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
-                                                <Button Content="Restore" MinWidth="80" Command="{Binding RestoreCommand}" />
-                                                <Button Content="Tag..." MinWidth="70" Command="{Binding EditTagCommand}" />
-                                                <Button Content="Delete" MinWidth="70" Command="{Binding DeleteCommand}" />
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                                   IsVisible="{Binding !SnapshotCount}"/>
+
+                        <!-- Snapshot rows live here — replaced in Task 9 -->
+                        <ItemsControl ItemsSource="{Binding Snapshots}"
+                                      x:Name="SnapshotHistoryItems"/>
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>
