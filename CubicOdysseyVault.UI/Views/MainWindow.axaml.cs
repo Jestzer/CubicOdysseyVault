@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Avalonia.Controls;
+using CubicOdysseyVault.Core.SaveContent;
 using CubicOdysseyVault.Core.Saves;
 using CubicOdysseyVault.Core.Snapshots;
 using CubicOdysseyVault.UI.Services;
@@ -72,9 +73,9 @@ public partial class MainWindow : Window
         return vm.Confirmed;
     }
 
-    private async Task ShowSaveInspectorDialogAsync(SaveSlot slot)
+    private async Task ShowSaveInspectorDialogAsync(SaveSlot slot, SaveSummary summary)
     {
-        var vm = new SaveInspectorViewModel(slot);
+        var vm = new SaveInspectorViewModel(slot, summary);
         var dialog = new SaveInspectorDialog { DataContext = vm };
         await dialog.ShowDialog(this);
     }

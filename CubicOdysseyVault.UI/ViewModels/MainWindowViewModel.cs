@@ -3,7 +3,9 @@ using System.Linq;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CubicOdysseyVault.Core;
 using CubicOdysseyVault.Core.Restore;
+using CubicOdysseyVault.Core.SaveContent;
 using CubicOdysseyVault.Core.Saves;
 using CubicOdysseyVault.Core.Snapshots;
 using CubicOdysseyVault.Core.Steam;
@@ -34,7 +36,8 @@ public partial class MainWindowViewModel : ViewModelBase
     public Func<SaveSlot, Snapshot, string, Task<bool>>? ShowRestoreConfirmDialog { get; set; }
     public Func<string, string?, Task<string?>>? ShowTagEditDialog { get; set; }
     public Func<Snapshot, Task<bool>>? ShowDeleteConfirmDialog { get; set; }
-    public Func<SaveSlot, Task>? ShowSaveInspectorDialog { get; set; }
+    public Func<SaveSlot, SaveSummary, Task>? ShowSaveInspectorDialog { get; set; }
+    private ItemCatalog? _itemCatalog;
     public Action<string>? OpenBackupFolderRequested { get; set; }
 
     public MainWindowViewModel()
@@ -104,7 +107,28 @@ public partial class MainWindowViewModel : ViewModelBase
     private async Task InspectSelectedSlot()
     {
         if (SelectedSlot == null || ShowSaveInspectorDialog == null) return;
-        await ShowSaveInspectorDialog(SelectedSlot.Slot);
+        StatusMessage = "Loading save summary...";
+        var slot = SelectedSlot.Slot;
+        var (catalog, summary) = await Task.Run(() =>
+        {
+            var c = EnsureCatalog();
+            var s = SaveSummaryBuilder.Build(slot, c);
+            return (c, s);
+        });
+        StatusMessage = catalog.IsEmpty
+            ? "Save summary loaded (item catalog not found — names use fallback)."
+            : $"Save summary loaded ({catalog.ByIdentifier.Count} items in catalog).";
+        await ShowSaveInspectorDialog(slot, summary);
+    }
+
+    private ItemCatalog EnsureCatalog()
+    {
+        if (_itemCatalog != null) return _itemCatalog;
+        var roots = SteamLocator.Locate();
+        var candidates = roots.Select(r =>
+            Path.Combine(r.CanonicalPath, Constants.SteamCommonRelative, Constants.CubicOdysseyInstallFolderName));
+        _itemCatalog = ItemCatalog.AutoDiscover(candidates);
+        return _itemCatalog;
     }
 
     [RelayCommand]

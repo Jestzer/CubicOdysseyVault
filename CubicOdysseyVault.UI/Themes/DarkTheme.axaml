@@ -19,6 +19,16 @@
   <Color x:Key="HealthSuspicious">#FFFFB300</Color>
   <Color x:Key="HealthCorrupted">#FFE53935</Color>
 
+  <!-- Inventory category badges -->
+  <Color x:Key="CategoryEquipment">#FF4CAF50</Color>
+  <Color x:Key="CategoryWeapon">#FFE53935</Color>
+  <Color x:Key="CategoryResource">#FF42A5F5</Color>
+  <Color x:Key="CategoryShipComponent">#FFFFA726</Color>
+  <Color x:Key="CategoryDeployable">#FFAB47BC</Color>
+  <Color x:Key="CategoryKey">#FFFFD54F</Color>
+  <Color x:Key="CategoryShip">#FF26C6DA</Color>
+  <Color x:Key="CategoryOther">#FF757575</Color>
+
   <!-- Brushes -->
   <SolidColorBrush x:Key="MainBackgroundBrush" Color="{StaticResource MainBackground}" />
   <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="{StaticResource SidebarBackground}" />
@@ -31,5 +41,13 @@
   <SolidColorBrush x:Key="HealthHealthyBrush" Color="{StaticResource HealthHealthy}" />
   <SolidColorBrush x:Key="HealthSuspiciousBrush" Color="{StaticResource HealthSuspicious}" />
   <SolidColorBrush x:Key="HealthCorruptedBrush" Color="{StaticResource HealthCorrupted}" />
+  <SolidColorBrush x:Key="CategoryEquipmentBrush" Color="{StaticResource CategoryEquipment}" />
+  <SolidColorBrush x:Key="CategoryWeaponBrush" Color="{StaticResource CategoryWeapon}" />
+  <SolidColorBrush x:Key="CategoryResourceBrush" Color="{StaticResource CategoryResource}" />
+  <SolidColorBrush x:Key="CategoryShipComponentBrush" Color="{StaticResource CategoryShipComponent}" />
+  <SolidColorBrush x:Key="CategoryDeployableBrush" Color="{StaticResource CategoryDeployable}" />
+  <SolidColorBrush x:Key="CategoryKeyBrush" Color="{StaticResource CategoryKey}" />
+  <SolidColorBrush x:Key="CategoryShipBrush" Color="{StaticResource CategoryShip}" />
+  <SolidColorBrush x:Key="CategoryOtherBrush" Color="{StaticResource CategoryOther}" />
 
 </ResourceDictionary>

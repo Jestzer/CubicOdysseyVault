@@ -12,6 +12,9 @@ public static class Constants
     public const string ProtonDocumentsSubpath = "pfx/drive_c/users/steamuser/Documents";
     public const string SteamUserdataRelative = "userdata";
     public const string SteamCloudRemoteFolderName = "remote";
+    public const string SteamCommonRelative = "steamapps/common";
+    // The game's install directory under <SteamRoot>/steamapps/common/.
+    public const string CubicOdysseyInstallFolderName = "Cubic Odyssey";
 
     public static readonly string[] LinuxSteamCandidateRoots =
     {
