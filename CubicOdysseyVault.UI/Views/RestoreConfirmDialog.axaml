@@ -18,76 +18,69 @@
                     HorizontalAlignment="Right"
                     Spacing="8"
                     Margin="0,16,0,0">
-            <Button Content="Cancel" MinWidth="90" Command="{Binding CancelCommand}" />
-            <Button Content="Restore"
+            <Button Classes="secondary" Content="Cancel" MinWidth="90" Command="{Binding CancelCommand}" />
+            <Button Classes="primary"
+                    Content="Restore"
                     MinWidth="90"
                     Command="{Binding ConfirmRestoreCommand}"
-                    IsEnabled="{Binding CanRestore}"
-                    Background="{StaticResource AccentBrush}"
-                    Foreground="White" />
+                    IsEnabled="{Binding CanRestore}" />
         </StackPanel>
 
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel Spacing="14">
-                <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
-                           FontSize="10" FontWeight="SemiBold"
+                <TextBlock Classes="label"
                            Text="{Binding SlotHeader}" />
-                <TextBlock Text="Restore this snapshot?"
-                           Foreground="{StaticResource TextPrimaryBrush}"
-                           FontSize="20" FontWeight="SemiBold" />
+                <TextBlock Classes="heading"
+                           Text="Restore this snapshot?" />
 
-                <Border CornerRadius="4"
-                        BorderBrush="{StaticResource SeparatorBrush}"
+                <Border CornerRadius="{StaticResource RadiusLg}"
+                        BorderBrush="{StaticResource BorderDefaultBrush}"
                         BorderThickness="1"
                         ClipToBounds="True"
-                        Background="{StaticResource SidebarBackgroundBrush}">
+                        BoxShadow="0 4 14 #80000000">
                     <Image Source="{Binding Screenshot}"
                            Stretch="Uniform"
                            MaxHeight="220" />
                 </Border>
 
-                <Border Background="{StaticResource SidebarBlockBrush}"
-                        BorderBrush="{StaticResource SeparatorBrush}"
-                        BorderThickness="1"
-                        CornerRadius="3"
-                        Padding="12">
+                <Border Classes="card" Padding="{StaticResource PadMd}">
                     <StackPanel Spacing="6">
                         <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,4,Auto,4,Auto,4,Auto,4,Auto">
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Captured" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" />
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding CapturedAtText}" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" />
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Trigger" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" />
-                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding TriggerLabel}" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" />
-                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Source" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" />
-                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SourceLabel}" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" />
-                            <TextBlock Grid.Row="6" Grid.Column="0" Text="Contents" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" />
-                            <TextBlock Grid.Row="6" Grid.Column="1" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="CAPTURED" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Classes="body-sm" Text="{Binding CapturedAtText}" />
+                            <TextBlock Grid.Row="2" Grid.Column="0" Classes="label" Text="TRIGGER" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Classes="body-sm" Text="{Binding TriggerLabel}" />
+                            <TextBlock Grid.Row="4" Grid.Column="0" Classes="label" Text="SOURCE" />
+                            <TextBlock Grid.Row="4" Grid.Column="1" Classes="body-sm" Text="{Binding SourceLabel}" />
+                            <TextBlock Grid.Row="6" Grid.Column="0" Classes="label" Text="CONTENTS" />
+                            <TextBlock Grid.Row="6" Grid.Column="1" Classes="body-sm">
                                 <Run Text="{Binding FileCount}" /><Run Text=" files · " /><Run Text="{Binding FormattedSize}" />
                             </TextBlock>
-                            <TextBlock Grid.Row="8" Grid.Column="0" Text="Tag" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"
+                            <TextBlock Grid.Row="8" Grid.Column="0" Classes="label" Text="TAG"
                                        IsVisible="{Binding Tag, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                            <TextBlock Grid.Row="8" Grid.Column="1" Text="{Binding Tag}" Foreground="{StaticResource AccentBrush}" FontSize="12" FontStyle="Italic"
+                            <TextBlock Grid.Row="8" Grid.Column="1" Classes="body-sm" Text="{Binding Tag}"
+                                       Foreground="{StaticResource AccentBrush}" FontStyle="Italic"
                                        IsVisible="{Binding Tag, Converter={x:Static ObjectConverters.IsNotNull}}" />
                         </Grid>
                     </StackPanel>
                 </Border>
 
-                <TextBlock Foreground="{StaticResource TextPrimaryBrush}"
-                           FontSize="12"
+                <TextBlock Classes="body"
                            TextWrapping="Wrap">
                     The live slot will be replaced with this snapshot's contents. The current
                     state is captured as a Pre-restore snapshot first, so this restore is
                     itself undoable.
                 </TextBlock>
 
-                <Border Background="{StaticResource HealthSuspiciousBrush}"
-                        CornerRadius="3"
-                        Padding="12"
+                <Border Classes="card" Padding="{StaticResource PadMd}"
                         IsVisible="{Binding IsGameRunning}">
                     <StackPanel Spacing="6">
-                        <TextBlock Foreground="Black" FontSize="12" FontWeight="SemiBold"
-                                   Text="Cubic Odyssey is currently running" />
-                        <TextBlock Foreground="Black" FontSize="11" TextWrapping="Wrap"
-                                   Text="Restore is blocked until the game closes — restoring while it has the save open would race the swap and could corrupt the file." />
+                        <Border Classes="pill health-sus" HorizontalAlignment="Left">
+                            <TextBlock Text="GAME RUNNING"/>
+                        </Border>
+                        <TextBlock Classes="body-sm"
+                                   Text="Cubic Odyssey is running. Restore is blocked while the game is open."
+                                   TextWrapping="Wrap"/>
                         <Button Content="Re-check"
                                 Command="{Binding RecheckGameCommand}"
                                 HorizontalAlignment="Left"
