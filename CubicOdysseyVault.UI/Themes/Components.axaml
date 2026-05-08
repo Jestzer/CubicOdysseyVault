@@ -83,6 +83,31 @@
     <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
   </Style>
 
+  <!-- Success (green primary, for safe bulk actions like "Back up everything") -->
+  <Style Selector="Button.success">
+    <Setter Property="Foreground" Value="White"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontWeight" Value="Medium"/>
+    <Setter Property="Padding" Value="14,7"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}"/>
+  </Style>
+  <Style Selector="Button.success /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource HealthHealthyBrush}"/>
+    <Setter Property="BorderBrush" Value="#FF6BBF6F"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}"/>
+  </Style>
+  <Style Selector="Button.success:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#FF66BB6A"/>
+  </Style>
+  <Style Selector="Button.success:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource HealthHealthyBrush}"/>
+  </Style>
+  <Style Selector="Button.success:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="#FF3A4F3B"/>
+    <Setter Property="BorderBrush" Value="#FF445F46"/>
+  </Style>
+
   <!-- Secondary -->
   <Style Selector="Button.secondary">
     <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
@@ -213,6 +238,15 @@
     <Setter Property="Foreground" Value="#FFFF8A87"/>
   </Style>
 
+  <!-- Orphan (backup-only — no live save folder on this machine) -->
+  <Style Selector="Border.pill.orphan">
+    <Setter Property="Background" Value="#2EFFA726"/>
+    <Setter Property="BorderBrush" Value="#61FFA726"/>
+  </Style>
+  <Style Selector="Border.pill.orphan > TextBlock">
+    <Setter Property="Foreground" Value="#FFFFAE6C"/>
+  </Style>
+
   <!-- Trigger -->
   <Style Selector="Border.pill.trigger-manual">
     <Setter Property="Background" Value="{DynamicResource AccentSurfaceBrush}"/>
@@ -318,6 +352,42 @@
   <Style Selector="NumericUpDown">
     <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}"/>
     <Setter Property="FontSize" Value="13"/>
+  </Style>
+
+  <!-- ============================================================
+       ROW ACTIONS — compact buttons for inline use within list rows
+       (snapshot history). Apply via Classes="row-action" plus an
+       optional emphasis modifier "primary" or "danger".
+       ============================================================ -->
+  <Style Selector="Button.row-action">
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    <Setter Property="FontSize" Value="11"/>
+    <Setter Property="FontWeight" Value="Medium"/>
+    <Setter Property="Padding" Value="9,3"/>
+    <Setter Property="MinHeight" Value="22"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusSm}"/>
+  </Style>
+  <Style Selector="Button.row-action /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusSm}"/>
+  </Style>
+  <Style Selector="Button.row-action:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#1AFFFFFF"/>
+  </Style>
+  <Style Selector="Button.row-action.primary /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}"/>
+  </Style>
+  <Style Selector="Button.row-action.primary">
+    <Setter Property="Foreground" Value="White"/>
+  </Style>
+  <Style Selector="Button.row-action.primary:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentBrushSecondary}"/>
+  </Style>
+  <Style Selector="Button.row-action.danger">
+    <Setter Property="Foreground" Value="#FFFF8A87"/>
   </Style>
 
   <!-- ============================================================

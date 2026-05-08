@@ -95,6 +95,16 @@ public class AppSettingsServiceTests
     {
         var path = AppSettingsService.GetSuggestedBackupRoot();
         Assert.Contains("CubicOdysseyVault", path);
-        Assert.Contains("snapshots", path);
+    }
+
+    [Fact]
+    public void GetSuggestedBackupRoot_DoesNotIncludeRedundantSnapshotsSegment()
+    {
+        // SnapshotStore.GetSlotSnapshotsRoot appends "snapshots" itself, so the
+        // suggested default must NOT include it — otherwise data lands at
+        // <root>/snapshots/snapshots/... and the store enumerator misses it.
+        var path = AppSettingsService.GetSuggestedBackupRoot();
+        Assert.False(path.EndsWith($"{Path.DirectorySeparatorChar}snapshots", StringComparison.Ordinal),
+            $"GetSuggestedBackupRoot returned '{path}', which ends with redundant 'snapshots' segment.");
     }
 }

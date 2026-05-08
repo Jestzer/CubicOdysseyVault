@@ -139,4 +139,144 @@ public sealed class RestoreService
         }
         catch { /* parent unavailable */ }
     }
+
+    public const string AccountStagingFolderName = "_account-restore-tmp";
+    public const string AccountReplacedFolderPrefix = "_account-replaced-";
+
+    // Restore loose files in an account folder to a previous snapshot's state.
+    // Differs from RestoreSlot: the account folder also contains slot
+    // subdirectories which must be left alone. So instead of moving the whole
+    // folder, we move loose files individually and stage/replace inside the
+    // account folder using `_account-` prefixed sentinels.
+    public RestoreResult RestoreAccount(SaveAccount account, Snapshot snapshot, BackupService backupService)
+    {
+        if (_isGameRunning())
+        {
+            return new RestoreResult
+            {
+                Success = false,
+                BlockedByRunningGame = true,
+                Reason = "Cubic Odyssey is currently running. Close the game and try again.",
+            };
+        }
+
+        var preResult = backupService.SnapshotAccount(account, SnapshotTrigger.PreRestore, "Pre-restore");
+        if (!preResult.Success)
+        {
+            return new RestoreResult
+            {
+                Success = false,
+                Reason = $"Pre-restore snapshot failed: {preResult.Reason}",
+            };
+        }
+
+        var snapshotsRoot = SnapshotStore.GetAccountSnapshotsRoot(_backupRoot, account.SteamId32);
+        var snapshotFolder = Path.Combine(snapshotsRoot, snapshot.FolderName);
+        if (!Directory.Exists(snapshotFolder))
+        {
+            return new RestoreResult
+            {
+                Success = false,
+                Reason = "Snapshot folder no longer exists in the backup store.",
+                PreRestoreSnapshot = preResult.Snapshot,
+            };
+        }
+
+        var accountFolderPath = account.AccountFolderPath;
+        if (!Directory.Exists(accountFolderPath))
+        {
+            return new RestoreResult
+            {
+                Success = false,
+                Reason = "Live account folder is missing.",
+                PreRestoreSnapshot = preResult.Snapshot,
+            };
+        }
+
+        CleanupPreviousAccountReplaced(accountFolderPath);
+
+        var stagingPath = Path.Combine(accountFolderPath, AccountStagingFolderName);
+        var replacedPath = Path.Combine(
+            accountFolderPath,
+            $"{AccountReplacedFolderPrefix}{DateTime.UtcNow:yyyy-MM-ddTHH-mm-ssZ}");
+
+        var movedToReplaced = new List<(string OriginalLive, string InReplaced)>();
+        var movedToLive = new List<string>();
+
+        try
+        {
+            if (Directory.Exists(stagingPath))
+                Directory.Delete(stagingPath, recursive: true);
+
+            SnapshotStore.CopyFilesAtomically(
+                Directory.EnumerateFiles(snapshotFolder)
+                    .Select(p => (SrcPath: p, FileName: Path.GetFileName(p))),
+                stagingPath);
+
+            Directory.CreateDirectory(replacedPath);
+            foreach (var liveFile in Directory.EnumerateFiles(accountFolderPath))
+            {
+                var fileName = Path.GetFileName(liveFile);
+                var dest = Path.Combine(replacedPath, fileName);
+                File.Move(liveFile, dest);
+                movedToReplaced.Add((liveFile, dest));
+            }
+
+            foreach (var stagedFile in Directory.EnumerateFiles(stagingPath))
+            {
+                var fileName = Path.GetFileName(stagedFile);
+                var destInLive = Path.Combine(accountFolderPath, fileName);
+                File.Move(stagedFile, destInLive);
+                movedToLive.Add(destInLive);
+            }
+
+            try { if (Directory.Exists(stagingPath)) Directory.Delete(stagingPath, recursive: true); }
+            catch { /* best effort — empty by now */ }
+
+            return new RestoreResult
+            {
+                Success = true,
+                PreRestoreSnapshot = preResult.Snapshot,
+                ReplacedFolderPath = replacedPath,
+            };
+        }
+        catch (Exception ex)
+        {
+            foreach (var placed in movedToLive)
+            {
+                try { File.Delete(placed); } catch { /* best effort */ }
+            }
+            foreach (var (originalLive, inReplaced) in movedToReplaced)
+            {
+                try { if (!File.Exists(originalLive)) File.Move(inReplaced, originalLive); }
+                catch { /* best effort */ }
+            }
+            try { if (Directory.Exists(stagingPath)) Directory.Delete(stagingPath, recursive: true); } catch { }
+            try { if (Directory.Exists(replacedPath) && !Directory.EnumerateFileSystemEntries(replacedPath).Any())
+                Directory.Delete(replacedPath, recursive: true); } catch { }
+
+            return new RestoreResult
+            {
+                Success = false,
+                Reason = ex.Message,
+                PreRestoreSnapshot = preResult.Snapshot,
+            };
+        }
+    }
+
+    private static void CleanupPreviousAccountReplaced(string accountFolderPath)
+    {
+        try
+        {
+            foreach (var dir in Directory.EnumerateDirectories(accountFolderPath))
+            {
+                var name = Path.GetFileName(dir);
+                if (name.StartsWith(AccountReplacedFolderPrefix, StringComparison.Ordinal))
+                {
+                    try { Directory.Delete(dir, recursive: true); } catch { /* best effort */ }
+                }
+            }
+        }
+        catch { /* account folder unavailable */ }
+    }
 }

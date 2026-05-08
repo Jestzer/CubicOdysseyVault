@@ -77,6 +77,7 @@ public static class SaveSlotEnumerator
         foreach (var accountFolder in accountFolders)
         {
             var accountFolderName = Path.GetFileName(accountFolder);
+            if (IsRestoreArtifact(accountFolderName)) continue;
 
             IEnumerable<string> slotFolders;
             try { slotFolders = Directory.EnumerateDirectories(accountFolder); }
@@ -145,4 +146,10 @@ public static class SaveSlotEnumerator
             if (!char.IsDigit(c)) return false;
         return true;
     }
+
+    // Account-restore drops `_account-restore-tmp/` and `_account-replaced-<utc>/`
+    // alongside real account folders; skip them so they don't surface as
+    // phantom accounts in the UI.
+    private static bool IsRestoreArtifact(string name) =>
+        name.StartsWith("_account-", StringComparison.Ordinal);
 }

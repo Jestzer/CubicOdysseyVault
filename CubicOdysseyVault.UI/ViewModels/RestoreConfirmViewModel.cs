@@ -11,8 +11,8 @@ namespace CubicOdysseyVault.UI.ViewModels;
 public partial class RestoreConfirmViewModel : ViewModelBase
 {
     public Snapshot Snapshot { get; }
-    public SaveSlot Slot { get; }
     public Bitmap? Screenshot { get; }
+    public bool HasScreenshot => Screenshot != null;
     public string CapturedAtText { get; }
     public string FormattedSize { get; }
     public string SourceLabel { get; }
@@ -20,6 +20,7 @@ public partial class RestoreConfirmViewModel : ViewModelBase
     public string? Tag { get; }
     public int FileCount { get; }
     public string SlotHeader { get; }
+    public string BodyText { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanRestore))]
@@ -30,22 +31,21 @@ public partial class RestoreConfirmViewModel : ViewModelBase
 
     public Action? CloseRequested { get; set; }
 
-    public RestoreConfirmViewModel(SaveSlot slot, Snapshot snapshot, string snapshotFolder)
+    private RestoreConfirmViewModel(
+        Snapshot snapshot,
+        Bitmap? screenshot,
+        string sourceLabel,
+        string slotHeader,
+        string bodyText)
     {
-        Slot = slot;
         Snapshot = snapshot;
+        Screenshot = screenshot;
+        SourceLabel = sourceLabel;
+        SlotHeader = slotHeader;
+        BodyText = bodyText;
 
-        Screenshot = TgaBitmapLoader.TryLoad(Path.Combine(snapshotFolder, "screenshot.tga"));
         CapturedAtText = snapshot.CapturedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
         FormattedSize = FormatBytes(snapshot.TotalBytes);
-        SourceLabel = slot.Source.Kind switch
-        {
-            SaveSourceKind.ProtonCompatdata => "Proton compatdata",
-            SaveSourceKind.SteamCloudRemote => "Steam Cloud",
-            SaveSourceKind.Documents => "Documents",
-            SaveSourceKind.Manual => "Manual override",
-            _ => slot.Source.Kind.ToString(),
-        };
         TriggerLabel = snapshot.Trigger switch
         {
             SnapshotTrigger.Manual => "Manual",
@@ -55,10 +55,25 @@ public partial class RestoreConfirmViewModel : ViewModelBase
         };
         Tag = snapshot.Tag;
         FileCount = snapshot.FileHashes.Count;
-        SlotHeader = $"Slot {slot.SlotName} / acct {slot.AccountFolderName} ({slot.SteamId32})";
 
         IsGameRunning = GameProcessDetector.IsCubicOdysseyRunning();
     }
+
+    public static RestoreConfirmViewModel ForSlot(SaveSlot slot, Snapshot snapshot, string snapshotFolder) =>
+        new(
+            snapshot,
+            screenshot: TgaBitmapLoader.TryLoad(Path.Combine(snapshotFolder, "screenshot.tga")),
+            sourceLabel: SourceLabelFor(slot.Source.Kind),
+            slotHeader: $"Slot {slot.SlotName} · acct {slot.AccountFolderName} ({slot.SteamId32})",
+            bodyText: "The live slot will be replaced with this snapshot's contents. The current state is captured as a Pre-restore snapshot first, so this restore is itself undoable.");
+
+    public static RestoreConfirmViewModel ForAccount(SaveAccount account, Snapshot snapshot, string snapshotFolder) =>
+        new(
+            snapshot,
+            screenshot: null,
+            sourceLabel: SourceLabelFor(account.Source.Kind),
+            slotHeader: $"Account-level · ({account.SteamId32})",
+            bodyText: "The live account-level files will be replaced with this snapshot's contents. Slot subfolders are not affected. The current state is captured as a Pre-restore snapshot first, so this restore is itself undoable.");
 
     [RelayCommand]
     private void RecheckGame() => IsGameRunning = GameProcessDetector.IsCubicOdysseyRunning();
@@ -77,6 +92,15 @@ public partial class RestoreConfirmViewModel : ViewModelBase
         Confirmed = false;
         CloseRequested?.Invoke();
     }
+
+    private static string SourceLabelFor(SaveSourceKind kind) => kind switch
+    {
+        SaveSourceKind.ProtonCompatdata => "Proton compatdata",
+        SaveSourceKind.SteamCloudRemote => "Steam Cloud",
+        SaveSourceKind.Documents => "Documents",
+        SaveSourceKind.Manual => "Manual override",
+        _ => kind.ToString(),
+    };
 
     private static string FormatBytes(long bytes)
     {

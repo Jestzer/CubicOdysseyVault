@@ -49,9 +49,8 @@ public partial class MainWindow : Window
         return vm.WasCompleted ? vm.ApplyTo(current) : null;
     }
 
-    private async Task<bool> ShowRestoreConfirmDialogAsync(SaveSlot slot, Snapshot snapshot, string snapshotFolder)
+    private async Task<bool> ShowRestoreConfirmDialogAsync(RestoreConfirmViewModel vm)
     {
-        var vm = new RestoreConfirmViewModel(slot, snapshot, snapshotFolder);
         var dialog = new RestoreConfirmDialog { DataContext = vm };
         await dialog.ShowDialog(this);
         return vm.Confirmed;
@@ -73,9 +72,9 @@ public partial class MainWindow : Window
         return vm.Confirmed;
     }
 
-    private async Task ShowSaveInspectorDialogAsync(SaveSlot slot, SaveSummary summary)
+    private async Task ShowSaveInspectorDialogAsync(SaveSlot slot, SaveSummary summary, string? title)
     {
-        var vm = new SaveInspectorViewModel(slot, summary);
+        var vm = new SaveInspectorViewModel(slot, summary, title);
         var dialog = new SaveInspectorDialog { DataContext = vm };
         await dialog.ShowDialog(this);
     }

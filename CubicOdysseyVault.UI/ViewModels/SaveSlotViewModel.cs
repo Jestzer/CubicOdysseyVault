@@ -47,6 +47,7 @@ public partial class SaveSlotViewModel : ViewModelBase
     [ObservableProperty] private string? _backupStatus;
 
     public Func<SaveSlot, SnapshotTrigger, Task<BackupResult>>? BackupRequested { get; set; }
+    public Func<SaveSlot, Snapshot, Task>? OnInspectSnapshotRequested { get; set; }
     public Func<SaveSlot, Snapshot, Task>? OnRestoreRequested { get; set; }
     public Func<SaveSlot, Snapshot, Task>? OnEditTagRequested { get; set; }
     public Func<SaveSlot, Snapshot, Task>? OnDeleteRequested { get; set; }
@@ -72,9 +73,12 @@ public partial class SaveSlotViewModel : ViewModelBase
     public bool IsHealthCorrupted => LatestHealth == SlotHealth.Corrupted;
     public bool IsHealthUnchecked => LatestHealth == null;
 
-    public SaveSlotViewModel(SaveSlot slot)
+    public bool IsOrphan { get; }
+
+    public SaveSlotViewModel(SaveSlot slot, bool isOrphan = false)
     {
         Slot = slot;
+        IsOrphan = isOrphan;
         Screenshot = TgaBitmapLoader.TryLoad(ScreenshotPath);
     }
 
@@ -95,6 +99,8 @@ public partial class SaveSlotViewModel : ViewModelBase
 
     private SnapshotViewModel WireSnapshot(SnapshotViewModel svm)
     {
+        svm.OnInspectRequested = snap =>
+            OnInspectSnapshotRequested?.Invoke(Slot, snap) ?? Task.CompletedTask;
         svm.OnRestoreRequested = snap =>
             OnRestoreRequested?.Invoke(Slot, snap) ?? Task.CompletedTask;
         svm.OnEditTagRequested = snap =>
@@ -151,7 +157,7 @@ public partial class SaveSlotViewModel : ViewModelBase
         }
     }
 
-    private bool CanBackUp() => !IsBackingUp;
+    private bool CanBackUp() => !IsBackingUp && !IsOrphan;
 
     private static string FormatBytes(long bytes)
     {

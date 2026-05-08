@@ -77,7 +77,7 @@ CubicOdysseyVault.Tests/     89 xUnit tests covering Core
 
 ## On-disk shape
 
-The backup root (default `%LOCALAPPDATA%\CubicOdysseyVault\snapshots\`,
+The backup root (default `%LOCALAPPDATA%\CubicOdysseyVault\`,
 configurable in Settings) holds:
 
 ```

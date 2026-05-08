@@ -23,11 +23,11 @@ public partial class SaveInspectorViewModel : ViewModelBase
 
     public Action? CloseRequested { get; set; }
 
-    public SaveInspectorViewModel(SaveSlot slot, SaveSummary summary)
+    public SaveInspectorViewModel(SaveSlot slot, SaveSummary summary, string? title = null)
     {
         Slot = slot;
         Summary = new SaveSummaryViewModel(summary);
-        Title = $"Inspect save: Slot {slot.SlotName} / acct {slot.AccountFolderName} ({slot.SteamId32})";
+        Title = title ?? $"Live · Slot {slot.SlotName} · acct {slot.AccountFolderName}";
         foreach (var f in slot.Files.OrderBy(f => f.FileName, StringComparer.OrdinalIgnoreCase))
             Files.Add(new SaveFileViewModel(f.FullPath, f.SizeBytes));
         SelectedFile = Files.FirstOrDefault();

@@ -39,10 +39,27 @@ public sealed class BackupCoordinator
     public Task<RestoreResult> RestoreSlotAsync(SaveSlot slot, Snapshot snapshot) =>
         Task.Run(() => _restoreService.RestoreSlot(slot, snapshot, _service));
 
+    public Task<RestoreResult> RestoreAccountAsync(SaveAccount account, Snapshot snapshot) =>
+        Task.Run(() => _restoreService.RestoreAccount(account, snapshot, _service));
+
     public string GetSlotSnapshotFolder(SaveSlot slot, Snapshot snapshot) =>
         Path.Combine(
             SnapshotStore.GetSlotSnapshotsRoot(_backupRoot, slot.SteamId32, slot.AccountFolderName, slot.SlotName),
             snapshot.FolderName);
+
+    public string GetAccountSnapshotFolder(SaveAccount account, Snapshot snapshot) =>
+        Path.Combine(
+            SnapshotStore.GetAccountSnapshotsRoot(_backupRoot, account.SteamId32),
+            snapshot.FolderName);
+
+    public BackupStoreLayout EnumerateBackupStore() =>
+        BackupStoreEnumerator.Enumerate(_backupRoot);
+
+    public IReadOnlyList<Snapshot> ListAccountSnapshots(string steamId32) =>
+        _service.ListAccountSnapshots(steamId32);
+
+    public IReadOnlyList<Snapshot> ListSlotSnapshots(string steamId32, string accountFolderName, string slotName) =>
+        _service.ListSlotSnapshots(steamId32, accountFolderName, slotName);
 
     public Task<bool> UpdateSlotSnapshotTagAsync(SaveSlot slot, string snapshotId, string? newTag) =>
         Task.Run(() => _service.UpdateSlotSnapshotTag(slot.SteamId32, slot.AccountFolderName, slot.SlotName, snapshotId, newTag));

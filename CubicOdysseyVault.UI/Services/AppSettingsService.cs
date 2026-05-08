@@ -21,13 +21,37 @@ public static class AppSettingsService
         {
             if (!File.Exists(path)) return new AppSettings();
             var json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+            var settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+            if (Migrate(settings)) SaveToFile(settings, path);
+            return settings;
         }
         catch
         {
             return new AppSettings();
         }
     }
+
+    // Migrates known-bad legacy values to current ones. Currently only handles
+    // the BackupRootPath that earlier `GetSuggestedBackupRoot()` versions
+    // produced with a redundant trailing `/snapshots/` segment — which made
+    // the program look one level too deep for snapshot data.
+    private static bool Migrate(AppSettings settings)
+    {
+        var changed = false;
+        var legacyDefault = LegacyGetSuggestedBackupRoot();
+        if (string.Equals(settings.BackupRootPath, legacyDefault, StringComparison.Ordinal))
+        {
+            settings.BackupRootPath = GetSuggestedBackupRoot();
+            changed = true;
+        }
+        return changed;
+    }
+
+    private static string LegacyGetSuggestedBackupRoot() =>
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "CubicOdysseyVault",
+            "snapshots");
 
     public static void SaveToFile(AppSettings settings, string path)
     {
@@ -44,11 +68,14 @@ public static class AppSettingsService
         }
     }
 
+    // The directory the program treats as the parent of the on-disk store.
+    // SnapshotStore appends a "snapshots" subfolder, so the suggested default
+    // is the parent — NOT including "snapshots" — to avoid the data ending up
+    // at <root>/snapshots/snapshots/...
     public static string GetSuggestedBackupRoot() =>
         Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "CubicOdysseyVault",
-            "snapshots");
+            "CubicOdysseyVault");
 }
 
 public class AppSettings

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CubicOdysseyVault.Core.Integrity;
 using CubicOdysseyVault.Core.Saves;
 using CubicOdysseyVault.Core.Snapshots;
 
@@ -10,6 +11,7 @@ namespace CubicOdysseyVault.UI.ViewModels;
 public partial class SaveAccountViewModel : ViewModelBase
 {
     public SaveAccount Account { get; }
+    public string SteamId32 => Account.SteamId32;
     public string SourceLabel => Account.Source.Kind switch
     {
         SaveSourceKind.ProtonCompatdata => "Proton compatdata",
@@ -23,7 +25,9 @@ public partial class SaveAccountViewModel : ViewModelBase
     public int FileCount => Account.AccountFiles.Count;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(LastSnapshotText), nameof(SnapshotCount))]
+    [NotifyPropertyChangedFor(
+        nameof(LastSnapshotText), nameof(SnapshotCount), nameof(LatestHealth), nameof(LatestHealthLabel),
+        nameof(IsHealthHealthy), nameof(IsHealthSuspicious), nameof(IsHealthCorrupted), nameof(IsHealthUnchecked))]
     private ObservableCollection<SnapshotViewModel> _snapshots = new();
 
     [ObservableProperty]
@@ -33,6 +37,10 @@ public partial class SaveAccountViewModel : ViewModelBase
     [ObservableProperty] private string? _backupStatus;
 
     public Func<SaveAccount, SnapshotTrigger, Task<BackupResult>>? BackupRequested { get; set; }
+    public Func<SaveAccount, Snapshot, Task>? OnInspectSnapshotRequested { get; set; }
+    public Func<SaveAccount, Snapshot, Task>? OnRestoreRequested { get; set; }
+    public Func<SaveAccount, Snapshot, Task>? OnEditTagRequested { get; set; }
+    public Func<SaveAccount, Snapshot, Task>? OnDeleteRequested { get; set; }
 
     public string LastSnapshotText => Snapshots.Count == 0
         ? "Never backed up"
@@ -40,18 +48,55 @@ public partial class SaveAccountViewModel : ViewModelBase
 
     public int SnapshotCount => Snapshots.Count;
 
-    public SaveAccountViewModel(SaveAccount account)
+    public SlotHealth? LatestHealth => Snapshots.Count == 0 ? null : Snapshots[0].Snapshot.Health;
+
+    public string LatestHealthLabel => LatestHealth switch
+    {
+        SlotHealth.Healthy => "Healthy",
+        SlotHealth.Suspicious => "Suspicious",
+        SlotHealth.Corrupted => "Corrupted",
+        _ => "Unchecked",
+    };
+
+    public bool IsHealthHealthy => LatestHealth == SlotHealth.Healthy;
+    public bool IsHealthSuspicious => LatestHealth == SlotHealth.Suspicious;
+    public bool IsHealthCorrupted => LatestHealth == SlotHealth.Corrupted;
+    public bool IsHealthUnchecked => LatestHealth == null;
+
+    public bool IsOrphan { get; }
+
+    public SaveAccountViewModel(SaveAccount account, bool isOrphan = false)
     {
         Account = account;
+        IsOrphan = isOrphan;
     }
 
     public void SetSnapshots(IEnumerable<Snapshot> snapshots)
     {
         Snapshots.Clear();
         foreach (var s in snapshots.OrderByDescending(s => s.CapturedAtUtc))
-            Snapshots.Add(new SnapshotViewModel(s));
+            Snapshots.Add(WireSnapshot(new SnapshotViewModel(s)));
         OnPropertyChanged(nameof(LastSnapshotText));
         OnPropertyChanged(nameof(SnapshotCount));
+        OnPropertyChanged(nameof(LatestHealth));
+        OnPropertyChanged(nameof(LatestHealthLabel));
+        OnPropertyChanged(nameof(IsHealthHealthy));
+        OnPropertyChanged(nameof(IsHealthSuspicious));
+        OnPropertyChanged(nameof(IsHealthCorrupted));
+        OnPropertyChanged(nameof(IsHealthUnchecked));
+    }
+
+    private SnapshotViewModel WireSnapshot(SnapshotViewModel svm)
+    {
+        svm.OnInspectRequested = snap =>
+            OnInspectSnapshotRequested?.Invoke(Account, snap) ?? Task.CompletedTask;
+        svm.OnRestoreRequested = snap =>
+            OnRestoreRequested?.Invoke(Account, snap) ?? Task.CompletedTask;
+        svm.OnEditTagRequested = snap =>
+            OnEditTagRequested?.Invoke(Account, snap) ?? Task.CompletedTask;
+        svm.OnDeleteRequested = snap =>
+            OnDeleteRequested?.Invoke(Account, snap) ?? Task.CompletedTask;
+        return svm;
     }
 
     [RelayCommand(CanExecute = nameof(CanBackUp))]
@@ -73,9 +118,15 @@ public partial class SaveAccountViewModel : ViewModelBase
                 }
                 else if (result.Snapshot != null)
                 {
-                    Snapshots.Insert(0, new SnapshotViewModel(result.Snapshot));
+                    Snapshots.Insert(0, WireSnapshot(new SnapshotViewModel(result.Snapshot)));
                     OnPropertyChanged(nameof(LastSnapshotText));
                     OnPropertyChanged(nameof(SnapshotCount));
+                    OnPropertyChanged(nameof(LatestHealth));
+                    OnPropertyChanged(nameof(LatestHealthLabel));
+                    OnPropertyChanged(nameof(IsHealthHealthy));
+                    OnPropertyChanged(nameof(IsHealthSuspicious));
+                    OnPropertyChanged(nameof(IsHealthCorrupted));
+                    OnPropertyChanged(nameof(IsHealthUnchecked));
                     BackupStatus = (trigger == SnapshotTrigger.Auto ? "Auto-saved" : "Saved")
                         + $" at {result.Snapshot.CapturedAtUtc.ToLocalTime():HH:mm:ss}";
                 }
@@ -95,7 +146,7 @@ public partial class SaveAccountViewModel : ViewModelBase
         }
     }
 
-    private bool CanBackUp() => !IsBackingUp;
+    private bool CanBackUp() => !IsBackingUp && !IsOrphan;
 
     private static string FormatBytes(long bytes)
     {

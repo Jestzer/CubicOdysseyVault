@@ -28,6 +28,7 @@ public partial class SnapshotViewModel : ViewModelBase
     public string HealthLabel => Snapshot.Health.ToString();
     public int FileCount => Snapshot.FileHashes.Count;
 
+    public Func<Snapshot, Task>? OnInspectRequested { get; set; }
     public Func<Snapshot, Task>? OnRestoreRequested { get; set; }
     public Func<Snapshot, Task>? OnEditTagRequested { get; set; }
     public Func<Snapshot, Task>? OnDeleteRequested { get; set; }
@@ -35,6 +36,12 @@ public partial class SnapshotViewModel : ViewModelBase
     public SnapshotViewModel(Snapshot snapshot)
     {
         Snapshot = snapshot;
+    }
+
+    [RelayCommand]
+    private async Task Inspect()
+    {
+        if (OnInspectRequested != null) await OnInspectRequested(Snapshot);
     }
 
     [RelayCommand]
