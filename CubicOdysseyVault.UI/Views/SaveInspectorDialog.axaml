@@ -10,6 +10,130 @@
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource MainBackgroundBrush}">
 
+    <Window.Resources>
+        <!-- Shared between the left and right inventory columns. Pulled out into
+             a resource so the two ItemsControls can stack containers independently
+             (so a 2-item card doesn't get padded out to a 30-item card's height
+             the way UniformGrid forced) without duplicating the row template. -->
+        <DataTemplate x:Key="InventoryContainerCardTemplate"
+                      x:DataType="vm:InventoryContainerViewModel">
+            <Border Classes="card"
+                    Padding="{StaticResource PadLg}"
+                    Margin="0,0,0,12">
+                <StackPanel Spacing="{StaticResource SpaceSm}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Classes="title"
+                                   Text="{Binding DisplayName}" />
+                        <TextBlock Grid.Column="1"
+                                   Classes="label"
+                                   Text="{Binding Subtitle}"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding Items}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:InventoryItemViewModel">
+                                <Grid ColumnDefinitions="44,Auto,38,*,Auto" Margin="0,3">
+                                    <!-- Always render the 40x40 cell. Show the sliced atlas image when
+                                         HasIcon, otherwise a category-colored placeholder so rows have
+                                         a consistent left-edge rhythm. -->
+                                    <Border Grid.Column="0"
+                                            Width="40" Height="40"
+                                            Background="{StaticResource SidebarBackgroundBrush}"
+                                            BorderBrush="{StaticResource SeparatorBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="3"
+                                            ClipToBounds="True"
+                                            HorizontalAlignment="Left">
+                                        <Panel>
+                                            <Image Source="{Binding IconBitmap}"
+                                                   Stretch="Uniform"
+                                                   IsVisible="{Binding HasIcon}"/>
+                                            <Border IsVisible="{Binding !HasIcon}"
+                                                    Background="{Binding CategoryBrush}"
+                                                    Opacity="0.18"/>
+                                            <TextBlock IsVisible="{Binding !HasIcon}"
+                                                       Text="{Binding CategoryAbbreviation}"
+                                                       Foreground="{Binding CategoryBrush}"
+                                                       FontSize="10"
+                                                       FontWeight="Bold"
+                                                       LetterSpacing="0.5"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </Panel>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <Border Classes="pill cat-equipment"
+                                                IsVisible="{Binding IsCatEquipment}">
+                                            <TextBlock Text="{Binding CategoryAbbreviation}" />
+                                        </Border>
+                                        <Border Classes="pill cat-weapon"
+                                                IsVisible="{Binding IsCatWeapon}">
+                                            <TextBlock Text="{Binding CategoryAbbreviation}" />
+                                        </Border>
+                                        <Border Classes="pill cat-resource"
+                                                IsVisible="{Binding IsCatResource}">
+                                            <TextBlock Text="{Binding CategoryAbbreviation}" />
+                                        </Border>
+                                        <Border Classes="pill cat-shipcomponent"
+                                                IsVisible="{Binding IsCatShipComponent}">
+                                            <TextBlock Text="{Binding CategoryAbbreviation}" />
+                                        </Border>
+                                        <Border Classes="pill cat-deployable"
+                                                IsVisible="{Binding IsCatDeployable}">
+                                            <TextBlock Text="{Binding CategoryAbbreviation}" />
+                                        </Border>
+                                        <Border Classes="pill cat-key"
+                                                IsVisible="{Binding IsCatKey}">
+                                            <TextBlock Text="{Binding CategoryAbbreviation}" />
+                                        </Border>
+                                        <Border Classes="pill cat-ship"
+                                                IsVisible="{Binding IsCatShip}">
+                                            <TextBlock Text="{Binding CategoryAbbreviation}" />
+                                        </Border>
+                                        <Border Classes="pill cat-other"
+                                                IsVisible="{Binding IsCatOther}">
+                                            <TextBlock Text="{Binding CategoryAbbreviation}" />
+                                        </Border>
+                                    </StackPanel>
+                                    <Border Grid.Column="2"
+                                            BorderBrush="{StaticResource SeparatorBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="3"
+                                            Padding="4,2"
+                                            Margin="6,0,0,0"
+                                            VerticalAlignment="Center"
+                                            HorizontalAlignment="Left"
+                                            IsVisible="{Binding HasTier}">
+                                        <TextBlock Text="{Binding TierText}"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   FontSize="10" FontWeight="SemiBold" />
+                                    </Border>
+                                    <TextBlock Grid.Column="3"
+                                               Classes="body-sm"
+                                               Text="{Binding DisplayName}"
+                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               VerticalAlignment="Center"
+                                               Margin="10,0,0,0"
+                                               TextTrimming="CharacterEllipsis"
+                                               ToolTip.Tip="{Binding DisplayName}"/>
+                                    <TextBlock Grid.Column="4"
+                                               Text="{Binding CountText}"
+                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               FontFamily="Consolas,monospace"
+                                               FontSize="12"
+                                               MinWidth="40"
+                                               TextAlignment="Right"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </Window.Resources>
+
     <DockPanel>
         <!-- Header -->
         <Border DockPanel.Dock="Top"
@@ -24,6 +148,7 @@
 
         <!-- Bottom bar -->
         <Border DockPanel.Dock="Bottom"
+                Name="CloseBar"
                 Background="{StaticResource SidebarBackgroundBrush}"
                 BorderBrush="{StaticResource SeparatorBrush}"
                 BorderThickness="0,1,0,0"
@@ -39,10 +164,16 @@
 
             <!-- ========== SUMMARY ========== -->
             <TabItem Header="Summary">
-                <ScrollViewer Padding="{StaticResource PadXl}" DataContext="{Binding Summary}" x:DataType="vm:SaveSummaryViewModel">
-                    <!-- Bottom Margin keeps the last item clear of the close-button bar
-                         when scrolled to the end. -->
-                    <StackPanel Spacing="{StaticResource SpaceLg}" Margin="0,0,0,16">
+                <ScrollViewer Name="SummaryScrollViewer"
+                              DataContext="{Binding Summary}"
+                              x:DataType="vm:SaveSummaryViewModel">
+                    <!-- Padding moved off the ScrollViewer onto the inner StackPanel as
+                         Margin: ScrollViewer.Padding doesn't get reflected in Extent in
+                         Avalonia 11.2.x, which leaves max-scroll short and lets the
+                         last card overflow the visible viewport (the SHIPS-card-clipped-
+                         behind-close-bar bug). Margin on the content does feed into
+                         Extent correctly. -->
+                    <StackPanel Spacing="{StaticResource SpaceLg}" Margin="24,24,24,24">
                         <!-- Character + timestamp -->
                         <Border Classes="card" Padding="{StaticResource PadLg}">
                             <Grid ColumnDefinitions="*,*">
@@ -84,140 +215,29 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- Inventory containers — UniformGrid lays them out in 2 columns
-                             at typical window widths so we use the available horizontal
-                             space instead of leaving the right side blank. Each item row
-                             is ItemTemplate'd to also flow in 2 columns within its card. -->
-                        <ItemsControl ItemsSource="{Binding Containers}"
-                                      IsVisible="{Binding HasInventories}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <UniformGrid Columns="2"/>
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:InventoryContainerViewModel">
-                                    <Border Classes="card"
-                                            Padding="{StaticResource PadLg}"
-                                            Margin="0,0,12,12">
-                                        <StackPanel Spacing="{StaticResource SpaceSm}">
-                                            <Grid ColumnDefinitions="*,Auto">
-                                                <TextBlock Grid.Column="0"
-                                                           Classes="title"
-                                                           Text="{Binding DisplayName}" />
-                                                <TextBlock Grid.Column="1"
-                                                           Classes="label"
-                                                           Text="{Binding Subtitle}"
-                                                           VerticalAlignment="Center" />
-                                            </Grid>
-                                            <ItemsControl ItemsSource="{Binding Items}">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate x:DataType="vm:InventoryItemViewModel">
-                                                        <Grid ColumnDefinitions="44,Auto,38,*,Auto" Margin="0,3">
-                                                            <!-- Always render the 40x40 cell. Show the sliced atlas image when
-                                                                 HasIcon, otherwise a category-colored placeholder so rows have
-                                                                 a consistent left-edge rhythm. -->
-                                                            <Border Grid.Column="0"
-                                                                    Width="40" Height="40"
-                                                                    Background="{StaticResource SidebarBackgroundBrush}"
-                                                                    BorderBrush="{StaticResource SeparatorBrush}"
-                                                                    BorderThickness="1"
-                                                                    CornerRadius="3"
-                                                                    ClipToBounds="True"
-                                                                    HorizontalAlignment="Left">
-                                                                <Panel>
-                                                                    <Image Source="{Binding IconBitmap}"
-                                                                           Stretch="Uniform"
-                                                                           IsVisible="{Binding HasIcon}"/>
-                                                                    <Border IsVisible="{Binding !HasIcon}"
-                                                                            Background="{Binding CategoryBrush}"
-                                                                            Opacity="0.18"/>
-                                                                    <TextBlock IsVisible="{Binding !HasIcon}"
-                                                                               Text="{Binding CategoryAbbreviation}"
-                                                                               Foreground="{Binding CategoryBrush}"
-                                                                               FontSize="10"
-                                                                               FontWeight="Bold"
-                                                                               LetterSpacing="0.5"
-                                                                               HorizontalAlignment="Center"
-                                                                               VerticalAlignment="Center"/>
-                                                                </Panel>
-                                                            </Border>
-                                                            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                                                <Border Classes="pill cat-equipment"
-                                                                        IsVisible="{Binding IsCatEquipment}">
-                                                                    <TextBlock Text="{Binding CategoryAbbreviation}" />
-                                                                </Border>
-                                                                <Border Classes="pill cat-weapon"
-                                                                        IsVisible="{Binding IsCatWeapon}">
-                                                                    <TextBlock Text="{Binding CategoryAbbreviation}" />
-                                                                </Border>
-                                                                <Border Classes="pill cat-resource"
-                                                                        IsVisible="{Binding IsCatResource}">
-                                                                    <TextBlock Text="{Binding CategoryAbbreviation}" />
-                                                                </Border>
-                                                                <Border Classes="pill cat-shipcomponent"
-                                                                        IsVisible="{Binding IsCatShipComponent}">
-                                                                    <TextBlock Text="{Binding CategoryAbbreviation}" />
-                                                                </Border>
-                                                                <Border Classes="pill cat-deployable"
-                                                                        IsVisible="{Binding IsCatDeployable}">
-                                                                    <TextBlock Text="{Binding CategoryAbbreviation}" />
-                                                                </Border>
-                                                                <Border Classes="pill cat-key"
-                                                                        IsVisible="{Binding IsCatKey}">
-                                                                    <TextBlock Text="{Binding CategoryAbbreviation}" />
-                                                                </Border>
-                                                                <Border Classes="pill cat-ship"
-                                                                        IsVisible="{Binding IsCatShip}">
-                                                                    <TextBlock Text="{Binding CategoryAbbreviation}" />
-                                                                </Border>
-                                                                <Border Classes="pill cat-other"
-                                                                        IsVisible="{Binding IsCatOther}">
-                                                                    <TextBlock Text="{Binding CategoryAbbreviation}" />
-                                                                </Border>
-                                                            </StackPanel>
-                                                            <Border Grid.Column="2"
-                                                                    BorderBrush="{StaticResource SeparatorBrush}"
-                                                                    BorderThickness="1"
-                                                                    CornerRadius="3"
-                                                                    Padding="4,2"
-                                                                    Margin="6,0,0,0"
-                                                                    VerticalAlignment="Center"
-                                                                    HorizontalAlignment="Left"
-                                                                    IsVisible="{Binding HasTier}">
-                                                                <TextBlock Text="{Binding TierText}"
-                                                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                                                           FontSize="10" FontWeight="SemiBold" />
-                                                            </Border>
-                                                            <TextBlock Grid.Column="3"
-                                                                       Classes="body-sm"
-                                                                       Text="{Binding DisplayName}"
-                                                                       Foreground="{StaticResource TextPrimaryBrush}"
-                                                                       VerticalAlignment="Center"
-                                                                       Margin="10,0,0,0"
-                                                                       TextTrimming="CharacterEllipsis"
-                                                                       ToolTip.Tip="{Binding DisplayName}"/>
-                                                            <TextBlock Grid.Column="4"
-                                                                       Text="{Binding CountText}"
-                                                                       Foreground="{StaticResource TextPrimaryBrush}"
-                                                                       FontFamily="Consolas,monospace"
-                                                                       FontSize="12"
-                                                                       MinWidth="40"
-                                                                       TextAlignment="Right"
-                                                                       VerticalAlignment="Center" />
-                                                        </Grid>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                        <!-- Inventory containers — laid out in two independently-stacked
+                             columns. Containers are pre-partitioned into Left/Right by
+                             the view model (greedy fill by row count) so a small card
+                             doesn't get padded out to the height of the largest one
+                             the way UniformGrid forced. -->
+                        <Grid IsVisible="{Binding HasInventories}"
+                              ColumnDefinitions="*,12,*">
+                            <ItemsControl Grid.Column="0"
+                                          ItemsSource="{Binding LeftContainers}"
+                                          ItemTemplate="{StaticResource InventoryContainerCardTemplate}" />
+                            <ItemsControl Grid.Column="2"
+                                          ItemsSource="{Binding RightContainers}"
+                                          ItemTemplate="{StaticResource InventoryContainerCardTemplate}" />
+                        </Grid>
 
-                        <!-- Ships — wrap the file list across as many columns as fit so a
-                             20+ ship list doesn't push the card a screen tall. -->
-                        <Border Classes="card"
+                        <!-- Ships — horizontal chips that wrap across rows. Now that the
+                             outer ScrollViewer measures correctly (Padding moved onto
+                             the StackPanel as Margin so it's reflected in Extent), a
+                             WrapPanel ItemsPanel can be used here without leaving the
+                             last chip stranded behind the close-bar. The headless
+                             SaveInspectorDialogShipsLayoutTests guards this. -->
+                        <Border Name="ShipsCard"
+                                Classes="card"
                                 Padding="{StaticResource PadLg}"
                                 IsVisible="{Binding HasShips}">
                             <StackPanel Spacing="{StaticResource SpaceSm}">
