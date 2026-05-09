@@ -10,6 +10,9 @@ silently buries good manual saves under autosaves. There is no
 developer-supplied recovery path. This tool keeps an out-of-band history with
 integrity checks and atomic restores.
 
+## How Saves in Cubic Odyssey Work
+WIP.
+
 ## Features
 
 - **Discovery** — finds Steam roots cross-platform (candidate paths,
@@ -162,7 +165,3 @@ Every commit subject must start with one of:
 | `chore:` | tooling, build, dependencies, repo housekeeping |
 
 Keep the subject short and imperative — e.g. `feat: discover save folders on Linux/Proton`.
-
-## License
-
-Not yet specified.
