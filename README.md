@@ -10,8 +10,136 @@ silently buries good manual saves under autosaves. There is no
 developer-supplied recovery path. This tool keeps an out-of-band history with
 integrity checks and atomic restores.
 
-## How Saves in Cubic Odyssey Work
-WIP.
+## How saves in Cubic Odyssey work
+
+This section is what we've reverse-engineered from the user's actual save data
+plus the game's `data/configs` and `data/sprites` files. Most of it isn't
+documented anywhere; the parsers in `Core/SaveContent/` are the canonical
+reference.
+
+### Folder layout
+
+The game writes saves under `Cubic Odyssey/save/<SteamID32>/`. Each Steam user
+gets one directory of account-level files plus one subfolder per in-game
+account, which in turn holds one subfolder per slot:
+
+```
+Cubic Odyssey/save/
+└── <SteamID32>/                       ← account-level (cross-slot) data
+    ├── meta.sav
+    ├── 93_blueprints.sav              ← unlocked recipes
+    ├── 93_servers.sav                 ← multiplayer/server list
+    ├── 93_stats.sav                   ← global play stats
+    └── <account e.g. 0>/              ← game's "account" tier (cosmetic;
+        └── <slot e.g. 0>/             ←  most users only ever have one)
+            ├── screenshot.tga         ← title-screen preview
+            ├── 93_meta.sav            ← slot timestamp + character
+            ├── 93_client_state.sav    ← player inventory, equipment, hotbar
+            ├── 93_economy.sav         ← currencies / market state
+            ├── 93_quests.sav          ← quest progress
+            ├── 93_sv_state.sav        ← server-side world state
+            ├── 93_<hex>.sav           ← per-region world data, paired with…
+            ├── 93_<hex>.vw3           ←  …its voxel chunk file
+            └── ship_<N>.vx            ← ship designs (one file per ship)
+```
+
+A typical slot is ~30 files / 5–10 MB; account-level data is small (a handful
+of files, < 200 KB).
+
+Steam writes these to one of three locations depending on your install:
+
+| Platform | Path |
+|---|---|
+| Linux/Proton | `<Steam>/steamapps/compatdata/3400000/pfx/drive_c/users/steamuser/Documents/Cubic Odyssey/save/` |
+| Windows | `%USERPROFILE%\Documents\Cubic Odyssey\save\` (also OneDrive Documents if redirected) |
+| Steam Cloud | `<Steam>/userdata/<SteamID32>/3400000/remote/Cubic Odyssey/save/` |
+
+`3400000` is Cubic Odyssey's Steam appid.
+
+### .sav file format
+
+Every `*.sav` is a thin envelope around a zstd-compressed TLV blob:
+
+```
+[u32 LE  decompressed_size]
+[zstd frame  (magic 28 B5 2F FD …)]
+```
+
+After decompression the payload is a tag-length-value document:
+
+```
+header:    u32          (always 0x00000008 in everything we've seen)
+count:     u16          number of top-level entries
+entries:   count × {
+    tag:    u16
+    type:   u16
+    length: u32
+    data:   length bytes
+}
+```
+
+Recognized types: `1` (u8), `4` (i32), `8` (u32), `9` (i64), `10` (f32),
+`11` (f64), `23` (nested TLV — `data` is itself a `count + entries` block).
+Anything else passes through as opaque bytes.
+
+`93_meta.sav` is the easiest one to read: tags 5–10 round-trip the slot's
+local-time save timestamp as month / day / year / hour / minute / second
+(verified against file mtime). The character name lives elsewhere in the same
+file — currently fished out by scanning for the longest printable-ASCII run
+since we haven't pinned down which tag holds it.
+
+`93_client_state.sav` stores inventory containers as flat sequences of item
+records. Each item is a TLV record whose tag-1 string is the item identifier
+(`cloth.suit.2`, `wep.mining_laser.4`, `res.battery.3`, …) followed by
+durability (float) and count (i32). Container grouping (Equipped / Quickslots
+/ Inventory / Ship cargo) is fenced by literal `inventory` and `__quickslots`
+ASCII markers. The full TLV schema for inventory containers varies by
+container type; the inspector uses the byte-pattern shortcut in
+`InventoryExtractor.cs` rather than fully decoding every variant.
+
+### Item catalog & icons
+
+The game ships per-item metadata as plain-text `.cfg` files at
+`<install>/data/configs/items/*.cfg` (~1300 entries). Each one is a single
+`ItemCfg { identifier "…" type GEAR tier 2 inv_frame 67 … }` block. The
+inspector loads these to humanize identifiers (`cloth.suit.2` →
+`Suit (Tier 2)`) and to pull `inv_frame` for the icon lookup.
+
+Inventory icons live in `<install>/data/sprites/items01.png` — a 2720×3500
+RGBA atlas. Rectangles are described in `items01.bspr`:
+
+```
+"BSPR" magic + u32 header
+records:  N × 12 bytes  [u32 reserved=0][u16 x][u16 y][u16 w][u16 h]
+trailer:  M × 4 bytes   [u16 frame_id][u16 count]   ← animation grouping
+"items01.png\0" + padding
+```
+
+Each item's `inv_frame` indexes directly into the record array. The icons
+form a regular 160×160 grid covering ~600 sprites. (Note: the much smaller
+`icons.bspr` / `icons.png` is the UI/HUD atlas — slot frames, cursor glyphs,
+etc. — not inventory icons. Easy to mis-target.)
+
+### Why this tool exists
+
+The format itself is reasonable; the *operational* parts are not. From a year
+of playing and from incident reports the author has collected:
+
+- The game keeps a small (~20-slot) FIFO of automatic saves. New autosaves
+  silently bury older manual saves once the ring fills up.
+- Crashes mid-write leave files as runs of NULL bytes — the integrity
+  checker flags any `.sav` that's all zeros and refuses to promote it into
+  a snapshot.
+- The Quit button has been observed to return before the final flush
+  completes, leaving a half-written slot on disk.
+- Steam Cloud will happily propagate a corrupted save to every other
+  machine on the account, overwriting good local copies.
+- There is no developer-supplied recovery path. Once a slot is gone it's
+  gone.
+
+This tool keeps an out-of-band history with content-addressed dedup, integrity
+checks, and atomic restores so none of the above turns into permanent data
+loss.
 
 ## Features
 
@@ -129,14 +257,10 @@ be rolled back manually if needed.
 
 ## Save sources
 
-| Platform | Path |
-|---|---|
-| Linux/Proton | `<Steam>/steamapps/compatdata/3400000/pfx/drive_c/users/steamuser/Documents/Cubic Odyssey/save/` |
-| Windows | `%USERPROFILE%\Documents\Cubic Odyssey\save\` (also OneDrive Documents if redirected) |
-| Steam Cloud | `<Steam>/userdata/<SteamID32>/3400000/remote/Cubic Odyssey/save/` |
-
-Manual override paths can be added in Settings — useful for external
-drives or recovered backups from another machine.
+Per-platform save locations are documented above in
+[How saves in Cubic Odyssey work](#how-saves-in-cubic-odyssey-work). Manual
+override paths can be added in Settings — useful for external drives or
+recovered backups from another machine.
 
 ## Status
 
