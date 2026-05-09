@@ -40,7 +40,9 @@
             <!-- ========== SUMMARY ========== -->
             <TabItem Header="Summary">
                 <ScrollViewer Padding="{StaticResource PadXl}" DataContext="{Binding Summary}" x:DataType="vm:SaveSummaryViewModel">
-                    <StackPanel Spacing="{StaticResource SpaceLg}" MaxWidth="900" HorizontalAlignment="Left">
+                    <!-- Bottom Margin keeps the last item clear of the close-button bar
+                         when scrolled to the end. -->
+                    <StackPanel Spacing="{StaticResource SpaceLg}" Margin="0,0,0,16">
                         <!-- Character + timestamp -->
                         <Border Classes="card" Padding="{StaticResource PadLg}">
                             <Grid ColumnDefinitions="*,*">
@@ -82,14 +84,22 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- Inventory containers -->
+                        <!-- Inventory containers — UniformGrid lays them out in 2 columns
+                             at typical window widths so we use the available horizontal
+                             space instead of leaving the right side blank. Each item row
+                             is ItemTemplate'd to also flow in 2 columns within its card. -->
                         <ItemsControl ItemsSource="{Binding Containers}"
                                       IsVisible="{Binding HasInventories}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="2"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:InventoryContainerViewModel">
                                     <Border Classes="card"
                                             Padding="{StaticResource PadLg}"
-                                            Margin="0,0,0,12">
+                                            Margin="0,0,12,12">
                                         <StackPanel Spacing="{StaticResource SpaceSm}">
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <TextBlock Grid.Column="0"
@@ -104,6 +114,9 @@
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate x:DataType="vm:InventoryItemViewModel">
                                                         <Grid ColumnDefinitions="44,Auto,38,*,Auto" Margin="0,3">
+                                                            <!-- Always render the 40x40 cell. Show the sliced atlas image when
+                                                                 HasIcon, otherwise a category-colored placeholder so rows have
+                                                                 a consistent left-edge rhythm. -->
                                                             <Border Grid.Column="0"
                                                                     Width="40" Height="40"
                                                                     Background="{StaticResource SidebarBackgroundBrush}"
@@ -111,10 +124,23 @@
                                                                     BorderThickness="1"
                                                                     CornerRadius="3"
                                                                     ClipToBounds="True"
-                                                                    HorizontalAlignment="Left"
-                                                                    IsVisible="{Binding HasIcon}">
-                                                                <Image Source="{Binding IconBitmap}"
-                                                                       Stretch="Uniform" />
+                                                                    HorizontalAlignment="Left">
+                                                                <Panel>
+                                                                    <Image Source="{Binding IconBitmap}"
+                                                                           Stretch="Uniform"
+                                                                           IsVisible="{Binding HasIcon}"/>
+                                                                    <Border IsVisible="{Binding !HasIcon}"
+                                                                            Background="{Binding CategoryBrush}"
+                                                                            Opacity="0.18"/>
+                                                                    <TextBlock IsVisible="{Binding !HasIcon}"
+                                                                               Text="{Binding CategoryAbbreviation}"
+                                                                               Foreground="{Binding CategoryBrush}"
+                                                                               FontSize="10"
+                                                                               FontWeight="Bold"
+                                                                               LetterSpacing="0.5"
+                                                                               HorizontalAlignment="Center"
+                                                                               VerticalAlignment="Center"/>
+                                                                </Panel>
                                                             </Border>
                                                             <StackPanel Grid.Column="1" Orientation="Horizontal">
                                                                 <Border Classes="pill cat-equipment"
@@ -169,7 +195,8 @@
                                                                        Foreground="{StaticResource TextPrimaryBrush}"
                                                                        VerticalAlignment="Center"
                                                                        Margin="10,0,0,0"
-                                                                       TextWrapping="Wrap" />
+                                                                       TextTrimming="CharacterEllipsis"
+                                                                       ToolTip.Tip="{Binding DisplayName}"/>
                                                             <TextBlock Grid.Column="4"
                                                                        Text="{Binding CountText}"
                                                                        Foreground="{StaticResource TextPrimaryBrush}"
@@ -188,20 +215,32 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
 
-                        <!-- Ships -->
+                        <!-- Ships — wrap the file list across as many columns as fit so a
+                             20+ ship list doesn't push the card a screen tall. -->
                         <Border Classes="card"
                                 Padding="{StaticResource PadLg}"
                                 IsVisible="{Binding HasShips}">
                             <StackPanel Spacing="{StaticResource SpaceSm}">
                                 <TextBlock Classes="label" Text="SHIPS" />
                                 <ItemsControl ItemsSource="{Binding Ships}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding}"
-                                                       Foreground="{StaticResource TextPrimaryBrush}"
-                                                       FontFamily="Consolas,monospace"
-                                                       FontSize="12"
-                                                       Margin="0,2" />
+                                            <Border Background="#0FFFFFFF"
+                                                    BorderBrush="{StaticResource SeparatorBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="3"
+                                                    Padding="6,3"
+                                                    Margin="0,2,6,0">
+                                                <TextBlock Text="{Binding}"
+                                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                                           FontFamily="Consolas,monospace"
+                                                           FontSize="12"/>
+                                            </Border>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>

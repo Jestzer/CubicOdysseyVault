@@ -466,46 +466,38 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:SaveAccountViewModel">
                             <Border Classes="card"
-                                    Padding="{StaticResource PadLg}"
                                     ClipToBounds="True"
                                     Classes.selected="{Binding $parent[ListBoxItem].IsSelected}">
-                                <Grid>
-                                    <Grid ColumnDefinitions="*,Auto">
-                                        <StackPanel Grid.Column="0" Spacing="3">
-                                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <TextBlock Text="ACCOUNT-LEVEL DATA" Classes="label" VerticalAlignment="Center"/>
-                                                <Border Classes="pill orphan" IsVisible="{Binding IsOrphan}">
-                                                    <TextBlock Text="NO LIVE SAVE"/>
-                                                </Border>
-                                            </StackPanel>
-                                            <TextBlock Classes="body" IsVisible="{Binding !IsOrphan}">
-                                                <Run Text="{Binding FileCount}"/><Run Text=" files · "/><Run Text="{Binding FormattedSize}"/><Run Text=" · "/><Run Text="{Binding SourceLabel}"/>
-                                            </TextBlock>
-                                            <TextBlock Classes="body" IsVisible="{Binding IsOrphan}">
-                                                <Run Text="Backup-only · "/><Run Text="{Binding SnapshotCount}"/><Run Text=" snapshot(s)"/>
-                                            </TextBlock>
-                                            <TextBlock Classes="body-sm" IsVisible="{Binding !IsOrphan}">
-                                                <Run Text="{Binding LastWriteText}"/><Run Text=" · "/><Run Text="{Binding LastSnapshotText}"/>
-                                            </TextBlock>
-                                            <TextBlock Classes="body-sm" IsVisible="{Binding IsOrphan}"
-                                                       Text="{Binding LastSnapshotText}"/>
-                                            <TextBlock Text="{Binding BackupStatus}"
-                                                       Classes="body-sm"
-                                                       Foreground="{StaticResource AccentBrush}"
-                                                       IsVisible="{Binding BackupStatus, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                                <Grid ColumnDefinitions="*,Auto" Margin="{StaticResource PadLg}">
+                                    <StackPanel Grid.Column="0" Spacing="3">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <TextBlock Text="ACCOUNT-LEVEL DATA" Classes="label" VerticalAlignment="Center"/>
+                                            <Border Classes="pill orphan" IsVisible="{Binding IsOrphan}">
+                                                <TextBlock Text="NO LIVE SAVE"/>
+                                            </Border>
                                         </StackPanel>
-                                        <Button Grid.Column="1"
-                                                Content="Back up now"
-                                                Classes="primary"
-                                                VerticalAlignment="Center"
-                                                Command="{Binding BackUpNowCommand}"
-                                                IsVisible="{Binding !IsOrphan}"/>
-                                    </Grid>
-                                    <Path Data="M 0 0 L 16 0 L 16 16 Z"
-                                          Fill="{StaticResource AccentBrush}"
-                                          HorizontalAlignment="Right"
-                                          VerticalAlignment="Top"
-                                          IsVisible="{Binding $parent[ListBoxItem].IsSelected}"/>
+                                        <TextBlock Classes="body" IsVisible="{Binding !IsOrphan}">
+                                            <Run Text="{Binding FileCount}"/><Run Text=" files · "/><Run Text="{Binding FormattedSize}"/><Run Text=" · "/><Run Text="{Binding SourceLabel}"/>
+                                        </TextBlock>
+                                        <TextBlock Classes="body" IsVisible="{Binding IsOrphan}">
+                                            <Run Text="Backup-only · "/><Run Text="{Binding SnapshotCount}"/><Run Text=" snapshot(s)"/>
+                                        </TextBlock>
+                                        <TextBlock Classes="body-sm" IsVisible="{Binding !IsOrphan}">
+                                            <Run Text="{Binding LastWriteText}"/><Run Text=" · "/><Run Text="{Binding LastSnapshotText}"/>
+                                        </TextBlock>
+                                        <TextBlock Classes="body-sm" IsVisible="{Binding IsOrphan}"
+                                                   Text="{Binding LastSnapshotText}"/>
+                                        <TextBlock Text="{Binding BackupStatus}"
+                                                   Classes="body-sm"
+                                                   Foreground="{StaticResource AccentBrush}"
+                                                   IsVisible="{Binding BackupStatus, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1"
+                                            Content="Back up now"
+                                            Classes="primary"
+                                            VerticalAlignment="Center"
+                                            Command="{Binding BackUpNowCommand}"
+                                            IsVisible="{Binding !IsOrphan}"/>
                                 </Grid>
                             </Border>
                         </DataTemplate>
@@ -544,56 +536,54 @@
                                         Classes="card"
                                         ClipToBounds="True"
                                         Classes.selected="{Binding $parent[ListBoxItem].IsSelected}">
-                                    <Grid>
-                                        <DockPanel>
-                                            <Border DockPanel.Dock="Top" Height="108"
-                                                    CornerRadius="8,8,0,0"
-                                                    BorderBrush="{StaticResource BorderSubtleBrush}"
-                                                    BorderThickness="0,0,0,1"
-                                                    ClipToBounds="True"
-                                                    Background="{StaticResource SidebarBackgroundBrush}">
-                                                <Image Source="{Binding Screenshot}" Stretch="UniformToFill"/>
-                                            </Border>
-                                            <StackPanel Spacing="{StaticResource SpaceXs}"
-                                                        Margin="12"
-                                                        VerticalAlignment="Top">
-                                                <TextBlock Classes="title">
-                                                    <Run Text="Slot "/><Run Text="{Binding SlotName}"/>
-                                                </TextBlock>
-                                                <TextBlock Classes="body-sm">
-                                                    <Run Text="{Binding FileCount}"/><Run Text=" files"/>
-                                                </TextBlock>
-                                                <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4,0,0">
-                                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
-                                                        <Border Classes="pill health-ok"
-                                                                IsVisible="{Binding IsHealthHealthy}">
-                                                            <TextBlock Text="HEALTHY"/>
-                                                        </Border>
-                                                        <Border Classes="pill health-sus"
-                                                                IsVisible="{Binding IsHealthSuspicious}">
-                                                            <TextBlock Text="SUSPECT"/>
-                                                        </Border>
-                                                        <Border Classes="pill health-bad"
-                                                                IsVisible="{Binding IsHealthCorrupted}">
-                                                            <TextBlock Text="CORRUPTED"/>
-                                                        </Border>
-                                                        <Border Classes="pill orphan"
-                                                                IsVisible="{Binding IsOrphan}">
-                                                            <TextBlock Text="NO LIVE"/>
-                                                        </Border>
-                                                    </StackPanel>
-                                                    <TextBlock Grid.Column="2" Classes="caption"
-                                                               VerticalAlignment="Center"
-                                                               Text="{Binding LastSnapshotText}"/>
-                                                </Grid>
-                                            </StackPanel>
-                                        </DockPanel>
-                                        <Path Data="M 0 0 L 16 0 L 16 16 Z"
-                                              Fill="{StaticResource AccentBrush}"
-                                              HorizontalAlignment="Right"
-                                              VerticalAlignment="Top"
-                                              IsVisible="{Binding $parent[ListBoxItem].IsSelected}"/>
-                                    </Grid>
+                                    <DockPanel>
+                                        <Border DockPanel.Dock="Top" Height="108"
+                                                CornerRadius="8,8,0,0"
+                                                BorderBrush="{StaticResource BorderSubtleBrush}"
+                                                BorderThickness="0,0,0,1"
+                                                ClipToBounds="True"
+                                                Background="{StaticResource SidebarBackgroundBrush}">
+                                            <Image Source="{Binding Screenshot}" Stretch="UniformToFill"/>
+                                        </Border>
+                                        <StackPanel Spacing="{StaticResource SpaceXs}"
+                                                    Margin="12"
+                                                    VerticalAlignment="Top">
+                                            <TextBlock Classes="title">
+                                                <Run Text="Slot "/><Run Text="{Binding SlotName}"/>
+                                            </TextBlock>
+                                            <TextBlock Classes="body-sm">
+                                                <Run Text="{Binding FileCount}"/><Run Text=" files"/>
+                                            </TextBlock>
+                                            <Grid ColumnDefinitions="Auto,*" Margin="0,4,0,0">
+                                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
+                                                    <Border Classes="pill health-ok"
+                                                            IsVisible="{Binding IsHealthHealthy}">
+                                                        <TextBlock Text="HEALTHY"/>
+                                                    </Border>
+                                                    <Border Classes="pill health-sus"
+                                                            IsVisible="{Binding IsHealthSuspicious}">
+                                                        <TextBlock Text="SUSPECT"/>
+                                                    </Border>
+                                                    <Border Classes="pill health-bad"
+                                                            IsVisible="{Binding IsHealthCorrupted}">
+                                                        <TextBlock Text="CORRUPTED"/>
+                                                    </Border>
+                                                    <Border Classes="pill orphan"
+                                                            IsVisible="{Binding IsOrphan}">
+                                                        <TextBlock Text="NO LIVE"/>
+                                                    </Border>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="1" Classes="caption"
+                                                           VerticalAlignment="Center"
+                                                           HorizontalAlignment="Right"
+                                                           TextAlignment="Right"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Margin="6,0,0,0"
+                                                           ToolTip.Tip="{Binding LastSnapshotText}"
+                                                           Text="{Binding LastSnapshotShortText}"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </DockPanel>
                                 </Border>
                             </DataTemplate>
                         </ListBox.ItemTemplate>

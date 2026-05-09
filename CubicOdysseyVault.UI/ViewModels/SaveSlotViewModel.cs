@@ -36,7 +36,8 @@ public partial class SaveSlotViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(
-        nameof(LastSnapshotText), nameof(SnapshotCount), nameof(LatestHealth), nameof(LatestHealthLabel),
+        nameof(LastSnapshotText), nameof(LastSnapshotShortText), nameof(SnapshotCount),
+        nameof(LatestHealth), nameof(LatestHealthLabel),
         nameof(IsHealthHealthy), nameof(IsHealthSuspicious), nameof(IsHealthCorrupted), nameof(IsHealthUnchecked))]
     private ObservableCollection<SnapshotViewModel> _snapshots = new();
 
@@ -55,6 +56,20 @@ public partial class SaveSlotViewModel : ViewModelBase
     public string LastSnapshotText => Snapshots.Count == 0
         ? "Never backed up"
         : $"Last backup: {Snapshots[0].CapturedAtText}";
+
+    // Compact form for the slot card's tight pill row. Shows just time when the
+    // backup was today, otherwise the date — full timestamp lives in the tooltip.
+    public string LastSnapshotShortText
+    {
+        get
+        {
+            if (Snapshots.Count == 0) return "—";
+            var local = Snapshots[0].Snapshot.CapturedAtUtc.ToLocalTime();
+            return local.Date == DateTime.Now.Date
+                ? local.ToString("HH:mm")
+                : local.ToString("MMM d");
+        }
+    }
 
     public int SnapshotCount => Snapshots.Count;
 
@@ -88,6 +103,7 @@ public partial class SaveSlotViewModel : ViewModelBase
         foreach (var s in snapshots.OrderByDescending(s => s.CapturedAtUtc))
             Snapshots.Add(WireSnapshot(new SnapshotViewModel(s)));
         OnPropertyChanged(nameof(LastSnapshotText));
+        OnPropertyChanged(nameof(LastSnapshotShortText));
         OnPropertyChanged(nameof(SnapshotCount));
         OnPropertyChanged(nameof(LatestHealth));
         OnPropertyChanged(nameof(LatestHealthLabel));

@@ -46,11 +46,11 @@ public class SpriteAtlasTests
                 // Frame 2: real rect — x=100, y=200, w=50, h=60
                 0x00, 0x00, 0x00, 0x00,  0x64, 0x00,  0xc8, 0x00,  0x32, 0x00,  0x3c, 0x00,
             };
-            // append icons.png string
-            bspr.AddRange(System.Text.Encoding.ASCII.GetBytes("icons.png"));
+            // append items01.png string (the inventory-icon atlas the loader targets)
+            bspr.AddRange(System.Text.Encoding.ASCII.GetBytes("items01.png"));
             bspr.Add(0);
-            File.WriteAllBytes(Path.Combine(spritesDir, "icons.bspr"), bspr.ToArray());
-            File.WriteAllBytes(Path.Combine(spritesDir, "icons.png"), new byte[] { 0x89, 0x50, 0x4E, 0x47 }); // not a real PNG, but file must exist
+            File.WriteAllBytes(Path.Combine(spritesDir, "items01.bspr"), bspr.ToArray());
+            File.WriteAllBytes(Path.Combine(spritesDir, "items01.png"), new byte[] { 0x89, 0x50, 0x4E, 0x47 }); // not a real PNG, but file must exist
 
             var atlas = SpriteAtlas.LoadFromGameInstall(dir);
             Assert.NotNull(atlas);

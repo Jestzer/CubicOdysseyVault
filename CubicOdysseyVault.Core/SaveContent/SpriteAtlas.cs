@@ -2,22 +2,23 @@ namespace CubicOdysseyVault.Core.SaveContent;
 
 public sealed record SpriteFrame(int X, int Y, int Width, int Height);
 
-// Cubic Odyssey ships an icon atlas at <install>/data/sprites/icons.png plus
-// metadata at <install>/data/sprites/icons.bspr ("BSPR" magic) describing
-// each frame's rectangle within the atlas. Empirical layout:
+// Cubic Odyssey ships its inventory-item icons in items01.png at
+// <install>/data/sprites/, with rectangles described in items01.bspr.
+// (icons.png is the much smaller UI/HUD atlas — wrong file for item icons.)
+// BSPR layout:
 //
 //   bytes 0..3   "BSPR"
-//   bytes 4..7   version u32 (always 8 in samples)
+//   bytes 4..7   header u32
 //   bytes 8..N   12-byte frame records:
 //                  [u32 reserved=0][u16 x][u16 y][u16 w][u16 h]
 //   bytes N..M   trailing index table of (u16 frame_id, u16 count) pairs
-//                — purpose unclear, likely groups frames into animations.
-//                We don't use it.
-//   bytes M..end "icons.png\0" + padding
+//                — likely animation groupings. We don't use it: each item
+//                .cfg's inv_frame indexes directly into the frame array.
+//   bytes M..end "items01.png\0" + padding
 //
-// `inv_frame` from each item .cfg is the index into the frame array.
-// Frames 0 and 1 are typically header-ish (zero or tiny rects); we surface
-// them as null so consumers fall back to the category badge.
+// items01 records form a regular 160x160 grid covering ~400 inventory items.
+// Records with reserved!=0 or zero/oversized dims are header/padding entries
+// and are surfaced as null so consumers fall back to the category badge.
 public sealed class SpriteAtlas
 {
     public string AtlasImagePath { get; }
@@ -36,8 +37,8 @@ public sealed class SpriteAtlas
     {
         if (string.IsNullOrEmpty(gameInstallDir)) return null;
         var spritesDir = Path.Combine(gameInstallDir, "data", "sprites");
-        var bsprPath = Path.Combine(spritesDir, "icons.bspr");
-        var atlasPath = Path.Combine(spritesDir, "icons.png");
+        var bsprPath = Path.Combine(spritesDir, "items01.bspr");
+        var atlasPath = Path.Combine(spritesDir, "items01.png");
         if (!File.Exists(bsprPath) || !File.Exists(atlasPath)) return null;
 
         try
@@ -76,9 +77,11 @@ public sealed class SpriteAtlas
             int h = bytes[off + 10] | (bytes[off + 11] << 8);
 
             // Header-ish or padding records typically have non-zero reserved
-            // or zero dimensions — skip those, the consumer falls back to the
-            // category badge.
-            if (reserved == 0 && w > 0 && h > 0 && w <= 2048 && h <= 2048)
+            // or zero/oversized dimensions (often 0xFFFF sentinels) — skip
+            // those, the consumer falls back to the category badge. Real
+            // inventory icons are <= 256px per side; the upper bound stays
+            // generous to tolerate larger atlases.
+            if (reserved == 0 && w > 0 && h > 0 && w <= 4096 && h <= 4096)
                 frames.Add(new SpriteFrame(x, y, w, h));
             else
                 frames.Add(null);
@@ -88,27 +91,30 @@ public sealed class SpriteAtlas
 
     // Locate where the rect-record area transitions to the trailing index
     // table by scanning forward for a stretch of plausible (u16 small,
-    // u16 1..8) tuples. Falls back to the "icons.png" string offset minus
-    // any padding when the heuristic fails.
+    // u16 1..8) tuples. Falls back to a known atlas-filename ASCII anchor
+    // ("items01.png", "icons.png") when the heuristic fails.
     private static int FindTrailerStart(byte[] bytes)
     {
-        var atlasNameOffset = FindAsciiOffset(bytes, "icons.png");
+        int atlasNameOffset = FindAsciiOffset(bytes, "items01.png");
+        if (atlasNameOffset <= 0) atlasNameOffset = FindAsciiOffset(bytes, "icons.png");
         int dataEnd = atlasNameOffset > 0 ? atlasNameOffset : bytes.Length;
 
         // Scan for the first 4-byte tuple that looks like an index entry,
-        // followed by enough similar tuples to be the table.
+        // followed by enough similar tuples to be the table. Accept count==0
+        // because items01.bspr ends its trailer with a (fid, 0) sentinel and
+        // we don't want one bad tuple to reject the entire trailer.
         for (int off = 8; off + 16 <= dataEnd; off += 4)
         {
             int a = bytes[off] | (bytes[off + 1] << 8);
             int b = bytes[off + 2] | (bytes[off + 3] << 8);
-            if (a >= 2000 || b < 1 || b > 8) continue;
+            if (a >= 5000 || b > 16) continue;
 
             bool consistent = true;
             for (int j = off; j + 4 <= dataEnd; j += 4)
             {
                 int aa = bytes[j] | (bytes[j + 1] << 8);
                 int bb = bytes[j + 2] | (bytes[j + 3] << 8);
-                if (aa >= 2000 || bb < 1 || bb > 8) { consistent = false; break; }
+                if (aa >= 5000 || bb > 16) { consistent = false; break; }
             }
             if (consistent) return off;
         }
