@@ -1,4 +1,4 @@
-# CubicOdysseyVault
+# Cubic Odyssey Vault
 
 A cross-platform Avalonia desktop app that backs up Cubic Odyssey saves and
 lets you browse, inspect, tag, restore, and prune them.
