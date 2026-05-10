@@ -21,8 +21,14 @@ public sealed class TestApp : App
 
     public static AppBuilder BuildAvaloniaApp() =>
         AppBuilder.Configure<TestApp>()
+            // Real Skia + Inter font are needed so UseHeadlessDrawing=false
+            // produces actual rendered bitmaps (vs. the no-op placeholder
+            // bitmap the default headless drawing yields). The map-viewer
+            // tests compare bitmap hashes to verify the slider re-renders.
+            .UseSkia()
+            .WithInterFont()
             .UseHeadless(new AvaloniaHeadlessPlatformOptions
             {
-                UseHeadlessDrawing = true,
+                UseHeadlessDrawing = false,
             });
 }

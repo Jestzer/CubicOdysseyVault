@@ -1,0 +1,189 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CubicOdysseyVault.UI.ViewModels"
+        x:Class="CubicOdysseyVault.UI.Views.MapViewerDialog"
+        x:DataType="vm:MapViewerViewModel"
+        Title="World map"
+        Icon="/Assets/icon.png"
+        Width="1400" Height="900"
+        MinWidth="1000" MinHeight="700"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource MainBackgroundBrush}">
+
+    <DockPanel>
+        <!-- Header -->
+        <Border DockPanel.Dock="Top"
+                Background="{StaticResource SidebarBackgroundBrush}"
+                BorderBrush="{StaticResource SeparatorBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="14,8">
+            <TextBlock Text="{Binding Title}"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       FontSize="13" FontWeight="SemiBold" />
+        </Border>
+
+        <!-- Bottom bar -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{StaticResource SidebarBackgroundBrush}"
+                BorderBrush="{StaticResource SeparatorBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,8">
+            <Button Content="Close"
+                    HorizontalAlignment="Right"
+                    MinWidth="80"
+                    Command="{Binding CloseCommand}" />
+        </Border>
+
+        <!-- Chunk list (left) | selected chunk render (center) | side panel (right) -->
+        <Grid ColumnDefinitions="280,*,240">
+
+            <!-- Chunk list -->
+            <Border Grid.Column="0"
+                    Background="{StaticResource SidebarBackgroundBrush}"
+                    BorderBrush="{StaticResource SeparatorBrush}"
+                    BorderThickness="0,0,1,0"
+                    Padding="8">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top"
+                               Classes="label"
+                               Text="CHUNKS"
+                               Margin="4,0,0,8" />
+                    <ListBox ItemsSource="{Binding Chunks}"
+                             SelectedItem="{Binding SelectedChunk}"
+                             Background="{StaticResource SidebarBackgroundBrush}"
+                             BorderThickness="0">
+                        <ListBox.Styles>
+                            <Style Selector="ListBoxItem">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0,0,0,4"/>
+                            </Style>
+                            <Style Selector="ListBoxItem /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+                            </Style>
+                            <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="#0DFFFFFF"/>
+                            </Style>
+                            <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="{DynamicResource AccentSurfaceBrush}"/>
+                            </Style>
+                        </ListBox.Styles>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:WorldChunkPreviewViewModel">
+                                <Grid ColumnDefinitions="Auto,*" Margin="6,4">
+                                    <Border Grid.Column="0"
+                                            Width="64" Height="64"
+                                            Background="#FF0E0E12"
+                                            CornerRadius="3"
+                                            ClipToBounds="True"
+                                            Margin="0,0,10,0">
+                                        <Image Source="{Binding Thumbnail}"
+                                               Stretch="Uniform"
+                                               Width="64" Height="64"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1"
+                                                Spacing="2"
+                                                VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   FontFamily="Consolas,monospace"
+                                                   FontSize="12"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding VoxelCountLabel}"
+                                                   Classes="caption"/>
+                                        <TextBlock Text="{Binding MaterialsLabel}"
+                                                   Classes="caption"/>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <!-- Selected chunk's large render -->
+            <Border Grid.Column="1"
+                    Background="#FF0E0E12"
+                    Margin="12"
+                    CornerRadius="4"
+                    ClipToBounds="True">
+                <Grid>
+                    <TextBlock Text="Select a chunk on the left."
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               IsVisible="{Binding !HasSelectedChunk}" />
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto"
+                                  IsVisible="{Binding HasSelectedChunk}">
+                        <Image Source="{Binding SelectedChunk.LargeBitmap}"
+                               Stretch="Uniform"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- Side panel -->
+            <Border Grid.Column="2"
+                    Background="{StaticResource SidebarBackgroundBrush}"
+                    BorderBrush="{StaticResource SeparatorBrush}"
+                    BorderThickness="1,0,0,0"
+                    Padding="{StaticResource PadLg}">
+                <StackPanel Spacing="{StaticResource SpaceMd}">
+                    <StackPanel Spacing="{StaticResource SpaceXs}">
+                        <TextBlock Classes="label" Text="WORLD" />
+                        <TextBlock Text="{Binding ChunkCountLabel}" Classes="body" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="{StaticResource SpaceXs}"
+                                IsVisible="{Binding HasSelectedChunk}">
+                        <TextBlock Classes="label" Text="SELECTED CHUNK" />
+                        <TextBlock Text="{Binding SelectedChunk.DisplayName}"
+                                   Classes="body"
+                                   FontFamily="Consolas,monospace"/>
+                        <TextBlock Text="{Binding SelectedChunk.VoxelCountLabel}"
+                                   Classes="body"/>
+                        <TextBlock Text="{Binding SelectedChunk.MaterialsLabel}"
+                                   Classes="body"/>
+                        <TextBlock Text="{Binding SelectedChunk.YRangeLabel}"
+                                   Classes="body"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="{StaticResource SpaceXs}"
+                                IsVisible="{Binding HasSelectedChunk}">
+                        <TextBlock Classes="label" Text="LAYER (Y RANGE)" />
+                        <TextBlock Classes="body-sm">
+                            <Run Text="from "/>
+                            <Run Text="{Binding YRangeLow}"/>
+                            <Run Text=" to "/>
+                            <Run Text="{Binding YRangeHigh}"/>
+                        </TextBlock>
+                        <TextBlock Classes="caption" Text="Lower bound:" />
+                        <Slider Minimum="{Binding YSliderMin}"
+                                Maximum="{Binding YSliderMax}"
+                                Value="{Binding YRangeLow}"
+                                TickFrequency="1"
+                                IsSnapToTickEnabled="True" />
+                        <TextBlock Classes="caption" Text="Upper bound:" />
+                        <Slider Minimum="{Binding YSliderMin}"
+                                Maximum="{Binding YSliderMax}"
+                                Value="{Binding YRangeHigh}"
+                                TickFrequency="1"
+                                IsSnapToTickEnabled="True" />
+                    </StackPanel>
+
+                    <Border BorderBrush="{StaticResource HealthSuspiciousBrush}"
+                            BorderThickness="1"
+                            CornerRadius="3"
+                            Padding="{StaticResource PadMd}"
+                            IsVisible="{Binding ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <TextBlock Text="{Binding ErrorMessage}"
+                                   Classes="body-sm"
+                                   Foreground="{StaticResource HealthSuspiciousBrush}"
+                                   TextWrapping="Wrap" />
+                    </Border>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>

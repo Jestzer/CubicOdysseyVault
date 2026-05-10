@@ -230,12 +230,10 @@
                                           ItemTemplate="{StaticResource InventoryContainerCardTemplate}" />
                         </Grid>
 
-                        <!-- Ships — horizontal chips that wrap across rows. Now that the
-                             outer ScrollViewer measures correctly (Padding moved onto
-                             the StackPanel as Margin so it's reflected in Extent), a
-                             WrapPanel ItemsPanel can be used here without leaving the
-                             last chip stranded behind the close-bar. The headless
-                             SaveInspectorDialogShipsLayoutTests guards this. -->
+                        <!-- Ships — each ship is a row with an isometric voxel
+                             thumbnail (rendered from the ship_*.vx file by
+                             VoxelRenderer), filename, dim, and block count. Wraps
+                             across rows so multiple ships fit per scroll line. -->
                         <Border Name="ShipsCard"
                                 Classes="card"
                                 Padding="{StaticResource PadLg}"
@@ -249,17 +247,46 @@
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Background="#0FFFFFFF"
+                                        <DataTemplate x:DataType="vm:ShipPreviewViewModel">
+                                            <Border Background="#0AFFFFFF"
                                                     BorderBrush="{StaticResource SeparatorBrush}"
                                                     BorderThickness="1"
-                                                    CornerRadius="3"
-                                                    Padding="6,3"
-                                                    Margin="0,2,6,0">
-                                                <TextBlock Text="{Binding}"
-                                                           Foreground="{StaticResource TextPrimaryBrush}"
-                                                           FontFamily="Consolas,monospace"
-                                                           FontSize="12"/>
+                                                    CornerRadius="4"
+                                                    Padding="8"
+                                                    Margin="0,4,8,0"
+                                                    Width="220">
+                                                <Grid ColumnDefinitions="Auto,*">
+                                                    <Border Grid.Column="0"
+                                                            Width="64" Height="64"
+                                                            Background="{StaticResource SidebarBackgroundBrush}"
+                                                            CornerRadius="3"
+                                                            ClipToBounds="True"
+                                                            Margin="0,0,10,0">
+                                                        <Image Source="{Binding Thumbnail}"
+                                                               Stretch="Uniform"
+                                                               Width="64" Height="64"/>
+                                                    </Border>
+                                                    <StackPanel Grid.Column="1"
+                                                                Spacing="2"
+                                                                VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding FileName}"
+                                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                                   FontFamily="Consolas,monospace"
+                                                                   FontSize="12"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{Binding DimensionsLabel}"
+                                                                   Classes="caption"/>
+                                                        <TextBlock Text="{Binding SolidCountLabel}"
+                                                                   Classes="caption"/>
+                                                        <TextBlock Text="{Binding MaterialsLabel}"
+                                                                   Classes="caption"/>
+                                                        <TextBlock Text="{Binding ErrorMessage}"
+                                                                   Classes="caption"
+                                                                   Foreground="{StaticResource HealthSuspiciousBrush}"
+                                                                   IsVisible="{Binding ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                                                   TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                </Grid>
                                             </Border>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>

@@ -42,7 +42,7 @@ public class SaveInspectorDialogShipsLayoutTests
 
     private static void RunShipsVisibilityCase(int shipCount, int inventoryItemCount, double width = 1200, double height = 780)
     {
-        var dialog = BuildDialog(shipCount, inventoryItemCount, width, height);
+        var (dialog, tempDir) = BuildDialog(shipCount, inventoryItemCount, width, height);
         try
         {
             dialog.Show();
@@ -73,34 +73,50 @@ public class SaveInspectorDialogShipsLayoutTests
                 shipsCardBottomInDialog <= closeBarTopInDialog + 0.5,
                 $"SHIPS card bottom {shipsCardBottomInDialog:0.0} extends below close-bar top {closeBarTopInDialog:0.0} (overlap {shipsCardBottomInDialog - closeBarTopInDialog:0.0}px). {Diagnostics()}");
 
-            // And every ship chip — find each by its bound TextBlock — must
-            // also be fully above the close-bar (not just rendered into the
-            // card's bounds — they must be visually onscreen).
-            var chipBottoms = FindChipBottomsInDialog(shipsCard, dialog).ToList();
-            Assert.Equal(shipCount, chipBottoms.Count);
-            foreach (var (text, bottomY) in chipBottoms)
+            // Each ship row (the outer Border holding the thumbnail + labels) must
+            // also be fully above the close-bar.
+            var rowBottoms = FindShipRowBottomsInDialog(shipsCard, dialog).ToList();
+            Assert.Equal(shipCount, rowBottoms.Count);
+            foreach (var (text, bottomY) in rowBottoms)
             {
                 Assert.True(
                     bottomY <= closeBarTopInDialog + 0.5,
-                    $"Chip '{text}' bottom {bottomY:0.0} extends below close-bar top {closeBarTopInDialog:0.0} (overlap {bottomY - closeBarTopInDialog:0.0}px). {Diagnostics()}");
+                    $"Ship row '{text}' bottom {bottomY:0.0} extends below close-bar top {closeBarTopInDialog:0.0} (overlap {bottomY - closeBarTopInDialog:0.0}px). {Diagnostics()}");
             }
         }
         finally
         {
             dialog.Close();
+            try { Directory.Delete(tempDir, recursive: true); } catch { /* best effort */ }
         }
     }
 
-    private static SaveInspectorDialog BuildDialog(int shipCount, int inventoryItemCount, double width, double height)
+    private static (SaveInspectorDialog dialog, string tempDir) BuildDialog(int shipCount, int inventoryItemCount, double width, double height)
     {
+        // Synthesize minimal valid ship_*.vx files in a temp dir so the
+        // ShipPreviewViewModel's BinvoxV3Reader call resolves a real file
+        // (otherwise rows show an error message and the row Border height
+        // varies). The smallest valid file is a tiny dim with a single
+        // all-air RLE run.
+        var tempDir = Path.Combine(Path.GetTempPath(), $"co-vault-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        var shipFiles = new List<ShipFile>();
+        for (int i = 1; i <= shipCount; i++)
+        {
+            var fn = $"ship_{i}.vx";
+            var path = Path.Combine(tempDir, fn);
+            File.WriteAllBytes(path, BuildSyntheticShipFile(dim: 4));
+            shipFiles.Add(new ShipFile(fn, path));
+        }
+
         var slot = new SaveSlot(
             SteamId32: "0",
             AccountFolderName: "0",
             SlotName: "0",
-            SlotFolderPath: "/tmp/test-slot",
+            SlotFolderPath: tempDir,
             Files: Array.Empty<SaveSlotFile>(),
             HasScreenshot: false,
-            Source: new SaveSource(SaveSourceKind.Manual, "/tmp", null, true),
+            Source: new SaveSource(SaveSourceKind.Manual, tempDir, null, true),
             LastWriteUtc: new DateTime(2026, 5, 8, 23, 26, 19, DateTimeKind.Utc),
             TotalBytes: 0);
 
@@ -114,26 +130,43 @@ public class SaveInspectorDialogShipsLayoutTests
                     Metadata: null))
                 .ToList());
 
-        var ships = Enumerable.Range(1, shipCount)
-            .Select(i => $"ship_{i}.vx")
-            .ToList();
-
         var summary = new SaveSummary(
             Slot: slot,
             CharacterName: "Test",
             SavedAtUtc: slot.LastWriteUtc,
             Inventories: new[] { inventory },
-            ShipFiles: ships,
+            ShipFiles: shipFiles,
             Warnings: Array.Empty<string>(),
             IconAtlas: null);
 
         var vm = new SaveInspectorViewModel(slot, summary);
-        return new SaveInspectorDialog
+        var dialog = new SaveInspectorDialog
         {
             DataContext = vm,
             Width = width,
             Height = height,
         };
+        return (dialog, tempDir);
+    }
+
+    private static byte[] BuildSyntheticShipFile(int dim)
+    {
+        var hdr = System.Text.Encoding.ASCII.GetBytes(
+            $"#binvox 3\ndim {dim} {dim} {dim}\ntranslate 0 0 0\nscale 1\ndata\n");
+        // Single all-air RLE run filling dim³ voxels. count is uint8 so we
+        // emit ceil(dim³ / 255) records.
+        long total = (long)dim * dim * dim;
+        var ms = new MemoryStream();
+        ms.Write(hdr, 0, hdr.Length);
+        long emitted = 0;
+        while (emitted < total)
+        {
+            int run = (int)Math.Min(255, total - emitted);
+            ms.WriteByte(0); ms.WriteByte(0); ms.WriteByte(0); ms.WriteByte(0);
+            ms.WriteByte((byte)run);
+            emitted += run;
+        }
+        return ms.ToArray();
     }
 
     private static void ForceLayout(Window window)
@@ -153,20 +186,24 @@ public class SaveInspectorDialogShipsLayoutTests
         => dialog.FindControl<ScrollViewer>("SummaryScrollViewer")
             ?? throw new InvalidOperationException("SummaryScrollViewer not found");
 
-    private static IEnumerable<(string text, double bottomY)> FindChipBottomsInDialog(Border shipsCard, Window dialog)
+    private static IEnumerable<(string text, double bottomY)> FindShipRowBottomsInDialog(Border shipsCard, Window dialog)
     {
-        // Each ship chip is a TextBlock inside a Border inside the SHIPS card.
-        // Walk the visual descendants and pick out the ones whose Text matches
-        // our ship_*.vx pattern.
+        // Each ship row is a Border whose first descendant TextBlock holds
+        // the ship's filename. Walk the visual tree, find the TextBlocks
+        // whose Text matches ship_*.vx, navigate up to the row Border
+        // (which has Width=220), and report its bottom edge in dialog coords.
         foreach (var tb in shipsCard.GetVisualDescendants().OfType<TextBlock>())
         {
             if (tb.Text is null || !tb.Text.StartsWith("ship_") || !tb.Text.EndsWith(".vx"))
                 continue;
-            var chipBorder = tb.FindAncestorOfType<Border>();
-            if (chipBorder is null)
-                continue;
+            var rowBorder = tb.FindAncestorOfType<Border>();
+            // Walk up until we hit the row Border (Width 220) — the chip's
+            // immediate parents include the inner StackPanel wrappers.
+            while (rowBorder is not null && rowBorder.Bounds.Width < 200)
+                rowBorder = rowBorder.FindAncestorOfType<Border>();
+            if (rowBorder is null) continue;
             var bottomInDialog =
-                chipBorder.TranslatePoint(new Point(0, chipBorder.Bounds.Height), dialog)!.Value.Y;
+                rowBorder.TranslatePoint(new Point(0, rowBorder.Bounds.Height), dialog)!.Value.Y;
             yield return (tb.Text, bottomInDialog);
         }
     }

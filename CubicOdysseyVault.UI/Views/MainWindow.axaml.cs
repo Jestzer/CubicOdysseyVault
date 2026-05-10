@@ -27,6 +27,7 @@ public partial class MainWindow : Window
         vm.ShowTagEditDialog = ShowTagEditDialogAsync;
         vm.ShowDeleteConfirmDialog = ShowDeleteConfirmDialogAsync;
         vm.ShowSaveInspectorDialog = ShowSaveInspectorDialogAsync;
+        vm.ShowMapViewerDialog = ShowMapViewerDialogAsync;
         vm.OpenBackupFolderRequested = OpenInFileManager;
 
         if (!vm.HasDiscovered && !vm.IsDiscovering)
@@ -76,6 +77,19 @@ public partial class MainWindow : Window
     {
         var vm = new SaveInspectorViewModel(slot, summary, title);
         var dialog = new SaveInspectorDialog { DataContext = vm };
+        await dialog.ShowDialog(this);
+    }
+
+    private async Task ShowMapViewerDialogAsync(SaveSlot slot)
+    {
+        var vw3Paths = slot.Files
+            .Where(f => f.FileName.EndsWith(".vw3", StringComparison.OrdinalIgnoreCase))
+            .Select(f => f.FullPath)
+            .ToList();
+        var vm = new MapViewerViewModel(
+            vw3Paths,
+            $"World map · Slot {slot.SlotName} · acct {slot.AccountFolderName}");
+        var dialog = new MapViewerDialog { DataContext = vm };
         await dialog.ShowDialog(this);
     }
 

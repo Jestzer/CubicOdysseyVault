@@ -1,33 +1,44 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
   <!-- Isometric cube divided into a 2x2 voxel grid on each visible face,
-       with a single red accent voxel on the top face (front quadrant).
-       Cube fills ~85% of the canvas. -->
+       with two red accent voxels meeting at the cube's front-top edge.
+       Cube edge length L = 112; the cube's projected width is L*sqrt(3)
+       ≈ 194 and projected height is 2L = 224, leaving ~16 px padding on
+       all sides of the 256x256 canvas while keeping every edge parallel
+       to its opposite (the previous version clipped the bottom vertex
+       which broke the front faces' bottom-edge angles). -->
 
-  <!-- Top face (lightest): top, top-right, front-center, top-left -->
-  <polygon points="128,16 238,80 128,144 18,80"
+  <!-- Top face (lightest) — vertices: top, right, front (bottom), left -->
+  <polygon points="128,16 225,72 128,128 31,72"
            fill="#6B6B70" stroke="#1A1A1C" stroke-width="3" stroke-linejoin="round"/>
 
-  <!-- Front-right face (medium) -->
-  <polygon points="238,80 238,208 128,240 128,144"
+  <!-- Front-right face (medium) — top-left, top-right, bottom-right, bottom-left -->
+  <polygon points="128,128 225,72 225,184 128,240"
            fill="#3F3F45" stroke="#1A1A1C" stroke-width="3" stroke-linejoin="round"/>
 
-  <!-- Front-left face (darkest) -->
-  <polygon points="18,80 128,144 128,240 18,208"
+  <!-- Front-left face (darkest) — top-right, top-left, bottom-left, bottom-right -->
+  <polygon points="128,128 31,72 31,184 128,240"
            fill="#2A2A2D" stroke="#1A1A1C" stroke-width="3" stroke-linejoin="round"/>
 
-  <!-- Sub-grid on top face -->
-  <line x1="183" y1="48" x2="73"  y2="112" stroke="#525258" stroke-width="2"/>
-  <line x1="73"  y1="48" x2="183" y2="112" stroke="#525258" stroke-width="2"/>
+  <!-- Sub-grid on top face: cross through center (128, 72) parallel to the
+       two diagonal edges. -->
+  <line x1="79.5"  y1="44"  x2="176.5" y2="100" stroke="#525258" stroke-width="2"/>
+  <line x1="176.5" y1="44"  x2="79.5"  y2="100" stroke="#525258" stroke-width="2"/>
 
-  <!-- Sub-grid on front-right face -->
-  <line x1="238" y1="144" x2="128" y2="176" stroke="#303035" stroke-width="2"/>
-  <line x1="183" y1="112" x2="183" y2="224" stroke="#303035" stroke-width="2"/>
+  <!-- Sub-grid on front-right face: vertical bisector + diagonal bisector. -->
+  <line x1="176.5" y1="100" x2="176.5" y2="212" stroke="#303035" stroke-width="2"/>
+  <line x1="128"   y1="184" x2="225"   y2="128" stroke="#303035" stroke-width="2"/>
 
-  <!-- Sub-grid on front-left face -->
-  <line x1="18"  y1="144" x2="128" y2="176" stroke="#1F1F22" stroke-width="2"/>
-  <line x1="73"  y1="112" x2="73"  y2="224" stroke="#1F1F22" stroke-width="2"/>
+  <!-- Sub-grid on front-left face. -->
+  <line x1="79.5" y1="100" x2="79.5" y2="212" stroke="#1F1F22" stroke-width="2"/>
+  <line x1="128"  y1="184" x2="31"   y2="128" stroke="#1F1F22" stroke-width="2"/>
 
-  <!-- Red accent voxel: front sub-rhombus on the top face -->
-  <polygon points="128,80 183,112 128,144 73,112"
+  <!-- Red accent voxel #1: top-front sub-square on the front-right face.
+       Sits in the upper-left quadrant of that face, sharing the cube's
+       front-top edge with accent #2. -->
+  <polygon points="128,128 176.5,100 176.5,156 128,184"
+           fill="#C62828" stroke="#1A1A1C" stroke-width="2" stroke-linejoin="round"/>
+
+  <!-- Red accent voxel #2: top-front sub-square on the front-left face. -->
+  <polygon points="128,128 79.5,100 79.5,156 128,184"
            fill="#C62828" stroke="#1A1A1C" stroke-width="2" stroke-linejoin="round"/>
 </svg>

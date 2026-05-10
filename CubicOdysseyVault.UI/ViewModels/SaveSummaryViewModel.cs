@@ -18,7 +18,7 @@ public sealed class SaveSummaryViewModel : ViewModelBase
     // → quickslots → inventory → ship) within each column.
     public ObservableCollection<InventoryContainerViewModel> LeftContainers { get; } = new();
     public ObservableCollection<InventoryContainerViewModel> RightContainers { get; } = new();
-    public ObservableCollection<string> Ships { get; } = new();
+    public ObservableCollection<ShipPreviewViewModel> Ships { get; } = new();
     public ObservableCollection<string> Warnings { get; } = new();
 
     public bool HasShips => Summary.ShipFiles.Count > 0;
@@ -48,8 +48,16 @@ public sealed class SaveSummaryViewModel : ViewModelBase
             }
         }
         foreach (var s in summary.ShipFiles)
-            Ships.Add(s);
+            Ships.Add(new ShipPreviewViewModel(s));
         foreach (var w in summary.Warnings)
             Warnings.Add(w);
+
+        // Decoding + rendering each ship is fast enough (5–20 ms total per
+        // ship in practice) that we can do it eagerly when the inspector
+        // opens. Keeping it here rather than in the ViewModel constructor
+        // means a future "open inspector lazily" optimization stays a single
+        // call site to update.
+        foreach (var ship in Ships)
+            ship.EnsureLoaded();
     }
 }

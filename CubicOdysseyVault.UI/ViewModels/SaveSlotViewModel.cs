@@ -28,6 +28,11 @@ public partial class SaveSlotViewModel : ViewModelBase
     public int FileCount => Slot.Files.Count;
     public bool HasScreenshot => Slot.HasScreenshot;
 
+    // World chunks (`93_*.vw3`) carry the terrain data the map viewer renders.
+    // Slots that have never had a backup cycle won't have any.
+    public bool HasWorldChunks => Slot.Files.Any(f =>
+        f.FileName.EndsWith(".vw3", StringComparison.OrdinalIgnoreCase));
+
     public string? ScreenshotPath => Slot.Files
         .FirstOrDefault(f => string.Equals(f.FileName, "screenshot.tga", StringComparison.OrdinalIgnoreCase))
         ?.FullPath;

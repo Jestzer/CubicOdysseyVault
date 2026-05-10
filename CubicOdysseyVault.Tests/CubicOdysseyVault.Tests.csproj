@@ -19,6 +19,10 @@
     </PackageReference>
     <PackageReference Include="Avalonia.Headless" Version="$(AvaloniaVersion)" />
     <PackageReference Include="Avalonia.Headless.XUnit" Version="$(AvaloniaVersion)" />
+    <!-- Real Skia rendering under the headless platform — needed so
+         RenderTargetBitmap.Save() produces actual pixel data (the
+         MapViewerDialog tests compare bitmap hashes after slider moves). -->
+    <PackageReference Include="Avalonia.Skia" Version="$(AvaloniaVersion)" />
   </ItemGroup>
 
   <ItemGroup>

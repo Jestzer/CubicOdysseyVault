@@ -15,8 +15,8 @@ public static class SaveSummaryBuilder
         var ships = slot.Files
             .Where(f => f.FileName.StartsWith("ship_", StringComparison.OrdinalIgnoreCase)
                      && f.FileName.EndsWith(".vx", StringComparison.OrdinalIgnoreCase))
-            .Select(f => f.FileName)
-            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .Select(f => new ShipFile(f.FileName, f.FullPath))
+            .OrderBy(s => s.FileName, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         return new SaveSummary(slot, characterName, savedAt, inventories, ships, warnings, catalog.IconAtlas);

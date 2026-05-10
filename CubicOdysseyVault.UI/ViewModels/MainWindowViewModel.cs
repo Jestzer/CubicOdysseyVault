@@ -43,6 +43,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public Func<string, string?, Task<string?>>? ShowTagEditDialog { get; set; }
     public Func<Snapshot, Task<bool>>? ShowDeleteConfirmDialog { get; set; }
     public Func<SaveSlot, SaveSummary, string?, Task>? ShowSaveInspectorDialog { get; set; }
+    public Func<SaveSlot, Task>? ShowMapViewerDialog { get; set; }
     private ItemCatalog? _itemCatalog;
     public Action<string>? OpenBackupFolderRequested { get; set; }
 
@@ -126,6 +127,13 @@ public partial class MainWindowViewModel : ViewModelBase
         });
         StatusMessage = CatalogStatus(catalog);
         await ShowSaveInspectorDialog(slot, summary, null);
+    }
+
+    [RelayCommand]
+    private async Task ViewSelectedSlotMap()
+    {
+        if (SelectedSlot == null || ShowMapViewerDialog == null) return;
+        await ShowMapViewerDialog(SelectedSlot.Slot);
     }
 
     [RelayCommand]

@@ -269,6 +269,10 @@
                                 Classes="secondary"
                                 Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).InspectSelectedSlotCommand}"
                                 IsVisible="{Binding !IsOrphan}"/>
+                        <Button Content="View map..."
+                                Classes="secondary"
+                                Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ViewSelectedSlotMapCommand}"
+                                IsVisible="{Binding HasWorldChunks}"/>
                     </StackPanel>
                     <TextBlock Text="{Binding BackupStatus}"
                                Classes="body-sm"
