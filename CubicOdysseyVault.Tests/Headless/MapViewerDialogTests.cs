@@ -23,7 +23,7 @@ namespace CubicOdysseyVault.Tests.Headless;
 public class MapViewerDialogTests
 {
     [AvaloniaFact]
-    public void Open_PopulatesChunkList_AutoSelectsLargest()
+    public void Open_PopulatesChunkList_AutoSelectsLargestChunk()
     {
         var (dialog, tempDir) = BuildDialog(
             chunks: new[]
@@ -40,13 +40,12 @@ public class MapViewerDialogTests
             Assert.Equal(2, vm.Chunks.Count);
             Assert.Equal("2 chunks", vm.ChunkCountLabel);
 
-            // Both chunks should have decoded into thumbnails.
+            // Every entry should have a decoded thumbnail.
             Assert.All(vm.Chunks, c => Assert.NotNull(c.Thumbnail));
 
-            // Auto-select the largest chunk (the 200-voxel one).
+            // The 200-voxel chunk is auto-selected as the largest.
             Assert.NotNull(vm.SelectedChunk);
             Assert.Equal("200 blocks", vm.SelectedChunk!.VoxelCountLabel);
-            // Selecting a chunk renders its large preview.
             Assert.NotNull(vm.SelectedChunk.LargeBitmap);
         }
         finally
@@ -132,7 +131,8 @@ public class MapViewerDialogTests
             ForceLayout(dialog);
 
             var vm = (MapViewerViewModel)dialog.DataContext!;
-            // Auto-selection picked the larger one (200 voxels).
+            // The world entry is auto-selected; capture its render before
+            // switching to a single chunk.
             var firstSelectedHash = HashBitmap(vm.SelectedChunk!.LargeBitmap!);
 
             // Switch to the smaller chunk; selecting it triggers RenderLarge

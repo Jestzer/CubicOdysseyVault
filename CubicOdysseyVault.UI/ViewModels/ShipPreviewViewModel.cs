@@ -27,11 +27,13 @@ public partial class ShipPreviewViewModel : ViewModelBase
     [ObservableProperty] private string? _errorMessage;
 
     private bool _loaded;
+    private readonly VoxelTypeCatalog? _catalog;
 
-    public ShipPreviewViewModel(ShipFile file)
+    public ShipPreviewViewModel(ShipFile file, VoxelTypeCatalog? catalog = null)
     {
         FileName = file.FileName;
         FullPath = file.FullPath;
+        _catalog = catalog;
     }
 
     public void EnsureLoaded()
@@ -46,7 +48,7 @@ public partial class ShipPreviewViewModel : ViewModelBase
             MaterialsLabel = grid.DistinctBlockTypes == 1
                 ? "1 material"
                 : $"{grid.DistinctBlockTypes} materials";
-            Thumbnail = VoxelRenderer.Render(grid, ThumbnailSize, ThumbnailSize);
+            Thumbnail = VoxelRenderer.Render(grid, ThumbnailSize, ThumbnailSize, _catalog);
         }
         catch (Exception ex)
         {

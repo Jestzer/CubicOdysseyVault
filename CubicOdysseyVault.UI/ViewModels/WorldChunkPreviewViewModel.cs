@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -28,15 +29,22 @@ public partial class WorldChunkPreviewViewModel : ViewModelBase
     [ObservableProperty] private string? _errorMessage;
 
     private List<WorldMapRenderer.WorldVoxel>? _voxels;
+    private readonly VoxelTypeCatalog? _catalog;
+    private readonly VoxelTextureCache? _textures;
     public int WorldYMin { get; private set; }
     public int WorldYMax { get; private set; }
+    public int SolidCount => _voxels?.Count ?? 0;
 
-    public WorldChunkPreviewViewModel(string fullPath)
+    public WorldChunkPreviewViewModel(string fullPath,
+        VoxelTypeCatalog? catalog = null,
+        VoxelTextureCache? textures = null)
     {
         FullPath = fullPath;
         FileName = System.IO.Path.GetFileName(fullPath);
         DisplayName = System.IO.Path.GetFileNameWithoutExtension(fullPath)
             .Replace("93_", "", System.StringComparison.Ordinal);
+        _catalog = catalog;
+        _textures = textures;
     }
 
     // Decode + render the thumbnail. Idempotent.
@@ -68,7 +76,8 @@ public partial class WorldChunkPreviewViewModel : ViewModelBase
             YRangeLabel = WorldYMin == WorldYMax ? $"y {WorldYMin}" : $"y {WorldYMin}–{WorldYMax}";
 
             Thumbnail = WorldMapRenderer.RenderTopDown(
-                new WorldMapRenderer.Input(voxels), ThumbnailSize, ThumbnailSize);
+                new WorldMapRenderer.Input(voxels), ThumbnailSize, ThumbnailSize,
+                catalog: _catalog);
         }
         catch (System.Exception ex)
         {
@@ -77,12 +86,17 @@ public partial class WorldChunkPreviewViewModel : ViewModelBase
     }
 
     // Render or re-render the large preview. Caller invokes when this chunk
-    // becomes selected, and again whenever the layer slider moves.
-    public void RenderLarge((int min, int max)? yRange = null)
+    // becomes selected, and again whenever the layer slider or zoom moves.
+    // zoom multiplies the bitmap size, which both gives the user something
+    // to pan around in and pushes the renderer past TextureZoomThreshold so
+    // textured cells kick in (when a texture cache is wired up).
+    public void RenderLarge((int min, int max)? yRange = null, int zoom = 1)
     {
         EnsureLoaded();
         if (_voxels is null) return;
+        int size = LargeSize * Math.Max(1, zoom);
         LargeBitmap = WorldMapRenderer.RenderTopDown(
-            new WorldMapRenderer.Input(_voxels), LargeSize, LargeSize, yRange);
+            new WorldMapRenderer.Input(_voxels), size, size, yRange,
+            catalog: _catalog, textures: _textures);
     }
 }

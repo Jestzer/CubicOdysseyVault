@@ -12,15 +12,17 @@ namespace CubicOdysseyVault.UI.Services;
 // three visible faces (top/+x/+z); voxels are sorted back-to-front by
 // (x + z - y) so closer voxels paint over farther ones.
 //
-// Block IDs are colored deterministically via a hash → HSL palette. When
-// a real game-install block catalog is wired up (TODO: see HANDOFF.md),
-// this can be replaced with the authentic voxel colors without touching
-// the renderer's geometry path.
+// Block colors come from a VoxelTypeCatalog when one is supplied (the
+// authentic in-game m_color values from data/configs/voxels/<name>.cfg).
+// When the catalog is null or doesn't know a block, the renderer falls
+// back to a deterministic hash → HSL palette so unknown ids still get a
+// stable, visually distinct color.
 public static class VoxelRenderer
 {
     private const double SqrtThreeOverTwo = 0.8660254037844387;
 
-    public static Bitmap Render(VoxelGrid grid, int width, int height)
+    public static Bitmap Render(VoxelGrid grid, int width, int height,
+        VoxelTypeCatalog? catalog = null)
     {
         var rtb = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));
         using var ctx = rtb.CreateDrawingContext();
@@ -77,7 +79,7 @@ public static class VoxelRenderer
         {
             if (!palette.TryGetValue(v.BlockId, out var faces))
             {
-                var baseColor = HashToColor(v.BlockId);
+                var baseColor = ResolveBaseColor(catalog, v.BlockId);
                 faces = (
                     top: new SolidColorBrush(Tint(baseColor, 1.00)),
                     right: new SolidColorBrush(Tint(baseColor, 0.78)),
@@ -125,6 +127,18 @@ public static class VoxelRenderer
             g.EndFigure(isClosed: true);
         }
         ctx.DrawGeometry(brush, pen, geom);
+    }
+
+    // Catalog hit → authentic m_color; miss → deterministic hash so the
+    // unknown block still gets a stable, distinct color.
+    private static Color ResolveBaseColor(VoxelTypeCatalog? catalog, uint blockId)
+    {
+        if (catalog is not null)
+        {
+            var def = catalog.Lookup((byte)(blockId >> 24));
+            if (def is not null) return Color.FromRgb(def.R, def.G, def.B);
+        }
+        return HashToColor(blockId);
     }
 
     // Deterministic block-id → color. Using a fixed-saturation HSL hash

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CubicOdysseyVault.Core.SaveContent;
+using CubicOdysseyVault.Core.Voxels;
 
 namespace CubicOdysseyVault.UI.ViewModels;
 
@@ -25,7 +26,7 @@ public sealed class SaveSummaryViewModel : ViewModelBase
     public bool HasInventories => Summary.Inventories.Count > 0;
     public bool HasWarnings => Summary.Warnings.Count > 0;
 
-    public SaveSummaryViewModel(SaveSummary summary)
+    public SaveSummaryViewModel(SaveSummary summary, VoxelTypeCatalog? voxelCatalog = null)
     {
         Summary = summary;
         int leftWeight = 0, rightWeight = 0;
@@ -48,7 +49,7 @@ public sealed class SaveSummaryViewModel : ViewModelBase
             }
         }
         foreach (var s in summary.ShipFiles)
-            Ships.Add(new ShipPreviewViewModel(s));
+            Ships.Add(new ShipPreviewViewModel(s, voxelCatalog));
         foreach (var w in summary.Warnings)
             Warnings.Add(w);
 

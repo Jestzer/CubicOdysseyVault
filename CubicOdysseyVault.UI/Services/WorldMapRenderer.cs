@@ -29,14 +29,26 @@ public static class WorldMapRenderer
     // readable than isometric for a multi-chunk world because it doesn't
     // project Y onto the screen at all — every chunk's content tiles into
     // a true 2D plan view of one chunk's terrain.
+    // px-per-voxel threshold above which we render textured tiles (when a
+    // VoxelTextureCache is provided). Below the threshold each voxel ends
+    // up too small for texture detail to read, so we save the work and use
+    // the solid-color path.
+    public const int TextureZoomThreshold = 8;
+
     public static Bitmap RenderTopDown(Input input, int width, int height,
         (int min, int max)? optionalYRange = null,
-        bool shadeByHeight = true)
+        bool shadeByHeight = true,
+        VoxelTypeCatalog? catalog = null,
+        bool hillshade = true,
+        VoxelTextureCache? textures = null)
     {
-        var rtb = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));
-        using var ctx = rtb.CreateDrawingContext();
-        ctx.FillRectangle(Brushes.Black, new Rect(0, 0, width, height));
-        if (input.Voxels.Count == 0) return rtb;
+        if (input.Voxels.Count == 0)
+        {
+            var blank = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));
+            using var bctx = blank.CreateDrawingContext();
+            bctx.FillRectangle(Brushes.Black, new Rect(0, 0, width, height));
+            return blank;
+        }
 
         // Build a per-(X,Z) "topmost" map. With ~290k voxels split across
         // (X, Z) up to 256² per chunk this is bounded; using a Dictionary
@@ -57,7 +69,13 @@ public static class WorldMapRenderer
             if (v.Z < zMin) zMin = v.Z; if (v.Z > zMax) zMax = v.Z;
             if (v.Y < yMin) yMin = v.Y; if (v.Y > yMax) yMax = v.Y;
         }
-        if (top.Count == 0) return rtb;
+        if (top.Count == 0)
+        {
+            var blank = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));
+            using var bctx = blank.CreateDrawingContext();
+            bctx.FillRectangle(Brushes.Black, new Rect(0, 0, width, height));
+            return blank;
+        }
 
         // Fit the X-Z plane into the bitmap with a small margin.
         int xs = xMax - xMin + 1, zs = zMax - zMin + 1;
@@ -68,12 +86,30 @@ public static class WorldMapRenderer
         double pxSize = Math.Max(1, Math.Floor(cellSize));
         double offsetX = (width  - xs * pxSize) * 0.5;
         double offsetY = (height - zs * pxSize) * 0.5;
-
-        // Group cells by (typeByte, shade-step) so we can issue one
-        // FillRectangle per palette entry instead of per voxel. 8 shade
-        // steps keeps palette size bounded (≤ 256 type bytes × 8 = 2048
-        // brushes worst case; in practice ~50 type bytes × 8 = 400).
         double yRangeSpan = yMax - yMin == 0 ? 1 : (yMax - yMin);
+
+        // High-zoom textured path: write per-pixel BGRA into a
+        // WriteableBitmap, sampling the catalog's texture tile per cell and
+        // applying the same hillshade / height tint the solid path uses.
+        if (textures is not null && pxSize >= TextureZoomThreshold)
+        {
+            return RenderTexturedTopDown(
+                top, width, height,
+                xMin, zMin, xs, zs, yMin, yRangeSpan,
+                pxSize, offsetX, offsetY,
+                shadeByHeight, hillshade,
+                textures);
+        }
+
+        // Solid-color path. Group cells by (typeByte, brightness-bucket)
+        // so we can issue one FillRectangle per palette entry instead of
+        // per voxel. With 256 brightness buckets the palette is bounded
+        // (≤ 256 type bytes × 256 = 65k brushes worst case; in practice
+        // ~50 type bytes × ~64 observed buckets ≈ 3.2k).
+        var rtb = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));
+        using var ctx = rtb.CreateDrawingContext();
+        ctx.FillRectangle(Brushes.Black, new Rect(0, 0, width, height));
+        const int BrightnessBuckets = 256;
         var batches = new Dictionary<uint, List<(double x, double z)>>();
         foreach (var entry in top)
         {
@@ -82,10 +118,24 @@ public static class WorldMapRenderer
             int y = entry.Value.y;
             uint blockId = entry.Value.blockId;
             byte typeByte = (byte)(blockId >> 24);
-            byte shade = shadeByHeight
-                ? (byte)Math.Clamp((int)Math.Round((y - yMin) / yRangeSpan * 7.0), 0, 7)
-                : (byte)0;
-            uint batchKey = ((uint)typeByte << 8) | shade;
+
+            // Existing height tint: low Y → dark, high Y → slightly bright.
+            double heightTint = shadeByHeight
+                ? 0.55 + ((y - yMin) / yRangeSpan) * 0.5
+                : 1.00;
+
+            // Slope-based hillshading: brightness derived from the height
+            // delta to (X,Z) neighbors. Empty neighbors fall back to this
+            // cell's height so the chunk-edge columns don't paint phantom
+            // cliffs into the surrounding void.
+            double hillTint = hillshade ? ComputeHillshade(top, x, z, y) : 1.00;
+
+            double tint = heightTint * hillTint;
+            // Quantize so the brush cache stays bounded.
+            int bucket = Math.Clamp((int)Math.Round((tint - MinTint) / (MaxTint - MinTint) * (BrightnessBuckets - 1)),
+                0, BrightnessBuckets - 1);
+
+            uint batchKey = ((uint)typeByte << 8) | (uint)bucket;
             if (!batches.TryGetValue(batchKey, out var list))
             {
                 list = new List<(double, double)>();
@@ -97,10 +147,9 @@ public static class WorldMapRenderer
         foreach (var (batchKey, cells) in batches)
         {
             byte typeByte = (byte)(batchKey >> 8);
-            byte shade = (byte)(batchKey & 0xff);
-            var baseColor = HashToColor((uint)typeByte);
-            // Shade 0 (lowest Y) → 0.55× brightness; shade 7 (highest) → 1.05×
-            double tint = 0.55 + (shade / 7.0) * 0.5;
+            int bucket = (int)(batchKey & 0xff);
+            var baseColor = ResolveBaseColor(catalog, typeByte);
+            double tint = MinTint + (bucket / (double)(BrightnessBuckets - 1)) * (MaxTint - MinTint);
             var brush = new SolidColorBrush(Tint(baseColor, tint));
             foreach (var (px, py) in cells)
                 ctx.FillRectangle(brush, new Rect(px, py, pxSize, pxSize));
@@ -109,6 +158,192 @@ public static class WorldMapRenderer
         return rtb;
     }
 
+    // Per-pixel render path used when textures are provided and the
+    // computed pxSize meets TextureZoomThreshold. Writes into a
+    // WriteableBitmap directly via its locked framebuffer to keep the
+    // ~16M pixel writes (at 4096²) fast enough — DrawingContext per-cell
+    // image draws are too slow at that scale.
+    private static unsafe Bitmap RenderTexturedTopDown(
+        Dictionary<(int x, int z), (int y, uint blockId)> top,
+        int width, int height,
+        int xMin, int zMin, int xs, int zs, int yMin, double yRangeSpan,
+        double pxSize, double offsetX, double offsetY,
+        bool shadeByHeight, bool hillshade,
+        VoxelTextureCache textures)
+    {
+        var wb = new WriteableBitmap(
+            new PixelSize(width, height), new Vector(96, 96),
+            PixelFormat.Bgra8888, AlphaFormat.Premul);
+        using var fb = wb.Lock();
+        byte* basePtr = (byte*)fb.Address;
+        int rowBytes = fb.RowBytes;
+
+        // Black background (premultiplied alpha: opaque-black is all zero
+        // bytes). New byte[] from C# already inits to zero; for a locked
+        // framebuffer we need to wipe explicitly.
+        for (int y = 0; y < height; y++)
+        {
+            byte* row = basePtr + y * rowBytes;
+            for (int x = 0; x < width * 4; x += 4)
+            {
+                row[x + 0] = 0;
+                row[x + 1] = 0;
+                row[x + 2] = 0;
+                row[x + 3] = 255;
+            }
+        }
+
+        int cellPx = (int)pxSize;
+        int tileSize = VoxelTextureCache.TileSize;
+
+        foreach (var entry in top)
+        {
+            int wx = entry.Key.x;
+            int wz = entry.Key.z;
+            int wy = entry.Value.y;
+            uint blockId = entry.Value.blockId;
+            byte typeByte = (byte)(blockId >> 24);
+
+            double heightTint = shadeByHeight
+                ? 0.55 + ((wy - yMin) / yRangeSpan) * 0.5
+                : 1.00;
+            double hillTint = hillshade ? ComputeHillshade(top, wx, wz, wy) : 1.00;
+            double tint = Math.Clamp(heightTint * hillTint, 0.0, 2.0);
+
+            byte[]? tile = textures.GetTopTile(typeByte);
+
+            // Cell origin in destination pixels.
+            int dstX0 = (int)(offsetX + (wx - xMin) * pxSize);
+            int dstY0 = (int)(offsetY + (wz - zMin) * pxSize);
+
+            if (tile is null)
+            {
+                // Texture miss: fall back to solid color from the catalog
+                // (or hash) shaded by the same tint so the cell at least
+                // sits flush with its neighbors.
+                var c = ResolveBaseColor(textures.Catalog, typeByte);
+                byte rB = (byte)Math.Clamp(c.B * tint, 0, 255);
+                byte rG = (byte)Math.Clamp(c.G * tint, 0, 255);
+                byte rR = (byte)Math.Clamp(c.R * tint, 0, 255);
+                FillCell(basePtr, rowBytes, dstX0, dstY0, cellPx, cellPx, width, height,
+                    rB, rG, rR);
+                continue;
+            }
+
+            // Sample the cached tile (already BGRA8888) into the cell. For
+            // each destination pixel pick the nearest tile pixel — the tile
+            // is small and the cell is small, so bilinear isn't worth it.
+            for (int dy = 0; dy < cellPx; dy++)
+            {
+                int py = dstY0 + dy;
+                if ((uint)py >= (uint)height) continue;
+                int tileY = (dy * tileSize) / cellPx;
+                byte* dstRow = basePtr + py * rowBytes + dstX0 * 4;
+                for (int dx = 0; dx < cellPx; dx++)
+                {
+                    int px = dstX0 + dx;
+                    if ((uint)px >= (uint)width) { dstRow += 4; continue; }
+                    int tileX = (dx * tileSize) / cellPx;
+                    int tileOff = (tileY * tileSize + tileX) * 4;
+                    byte b = tile[tileOff + 0];
+                    byte g = tile[tileOff + 1];
+                    byte r = tile[tileOff + 2];
+                    dstRow[0] = (byte)Math.Clamp(b * tint, 0, 255);
+                    dstRow[1] = (byte)Math.Clamp(g * tint, 0, 255);
+                    dstRow[2] = (byte)Math.Clamp(r * tint, 0, 255);
+                    dstRow[3] = 255;
+                    dstRow += 4;
+                }
+            }
+        }
+
+        return wb;
+    }
+
+    private static unsafe void FillCell(
+        byte* basePtr, int rowBytes,
+        int x0, int y0, int w, int h,
+        int dstW, int dstH,
+        byte b, byte g, byte r)
+    {
+        for (int dy = 0; dy < h; dy++)
+        {
+            int py = y0 + dy;
+            if ((uint)py >= (uint)dstH) continue;
+            byte* row = basePtr + py * rowBytes + x0 * 4;
+            for (int dx = 0; dx < w; dx++)
+            {
+                int px = x0 + dx;
+                if ((uint)px >= (uint)dstW) { row += 4; continue; }
+                row[0] = b;
+                row[1] = g;
+                row[2] = r;
+                row[3] = 255;
+                row += 4;
+            }
+        }
+    }
+
+    // Combined output range of (heightTint × hillshadeTint). Height tint
+    // alone runs 0.55..1.05; hillshade alone runs ~0.55..1.20. The product
+    // could in principle hit 1.05 × 1.20 = 1.26, but Tint(...) clamps to
+    // [0,255] per channel so the high end mostly self-limits. We still pick
+    // a slightly larger MaxTint than each individual factor so the bucket
+    // quantization centers aren't biased toward the dim end.
+    private const double MinTint = 0.30;
+    private const double MaxTint = 1.30;
+
+    // Compute slope-based brightness for cell (x,z) at height h. Light is
+    // azimuth NW (45° from +X toward -Z) and altitude 45°. Vertical scale k
+    // controls how strong the shading reads — higher k accentuates terrain.
+    // Returns a unitless multiplier suitable for blending with the base
+    // color via Tint(...): exactly 1.0 on flat ground, > 1 on slopes facing
+    // the light, < 1 on slopes facing away.
+    private static double ComputeHillshade(
+        Dictionary<(int x, int z), (int y, uint blockId)> top,
+        int x, int z, int h)
+    {
+        // Vertical scale: every world-Y unit above neighbor counts as ~1.5
+        // units of slope. Anything above ~3 over-saturates; below ~0.5 is
+        // barely visible.
+        const double k = 1.5;
+        // Light direction (Lx, Ly, Lz), normalized. NW + 45° altitude:
+        // azimuth points the light *toward* SE so cells with +X or +Z
+        // slopes face the light. Lx = Lz = cos(45°)/√2; Ly = sin(45°).
+        const double Lx = 0.5;
+        const double Lz = 0.5;
+        const double Ly = 0.7071068;
+
+        int hxm = NeighborHeight(top, x - 1, z, h);
+        int hxp = NeighborHeight(top, x + 1, z, h);
+        int hzm = NeighborHeight(top, x, z - 1, h);
+        int hzp = NeighborHeight(top, x, z + 1, h);
+
+        double dhdx = (hxp - hxm) * 0.5 * k;
+        double dhdz = (hzp - hzm) * 0.5 * k;
+
+        // Surface normal of a height field y=h(x,z) is (-∂h/∂x, 1, -∂h/∂z).
+        // Lambert factor = N · L / (|N| × |L|).
+        double nx = -dhdx;
+        double ny = 1.0;
+        double nz = -dhdz;
+        double nLen = Math.Sqrt(nx * nx + ny * ny + nz * nz);
+        if (nLen < 1e-9) return 1.0;
+        double lambert = (nx * Lx + ny * Ly + nz * Lz) / nLen;
+
+        // Normalize so that a flat surface (lambert = Ly, achieved when
+        // dhdx = dhdz = 0) lands at exactly 1.0. Slopes facing the light
+        // give ratio > 1 (clamped at 1.20); slopes facing away give
+        // ratio < 1 (clamped at 0.55).
+        double ratio = lambert / Ly;
+        return Math.Clamp(ratio, 0.55, 1.20);
+    }
+
+    private static int NeighborHeight(
+        Dictionary<(int x, int z), (int y, uint blockId)> top,
+        int x, int z, int fallback) =>
+        top.TryGetValue((x, z), out var v) ? v.y : fallback;
+
     // Empirically the high byte of a vw3 block-info uint32 is the block
     // *type* (e.g. 0xA9, 0x76); the low bytes are variant/flags that we
     // don't yet have semantics for. Bucketing by the type byte alone keeps
@@ -116,7 +351,8 @@ public static class WorldMapRenderer
     // of the same conceptual block now share a hue.
     private static uint PaletteKey(uint blockId) => blockId >> 24;
 
-    public static Bitmap Render(Input input, int width, int height, (int min, int max)? optionalYRange = null)
+    public static Bitmap Render(Input input, int width, int height, (int min, int max)? optionalYRange = null,
+        VoxelTypeCatalog? catalog = null)
     {
         var rtb = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));
         using var ctx = rtb.CreateDrawingContext();
@@ -190,7 +426,9 @@ public static class WorldMapRenderer
         {
             if (!palette.TryGetValue(blockId, out var entry))
             {
-                var bc = HashToColor(blockId);
+                // PaletteKey already reduced blockId to its high byte, so the
+                // catalog lookup uses the same value.
+                var bc = ResolveBaseColor(catalog, (byte)(blockId & 0xff));
                 entry = (bc,
                     new SolidColorBrush(Tint(bc, 1.00)),
                     new SolidColorBrush(Tint(bc, 0.78)),
@@ -274,6 +512,18 @@ public static class WorldMapRenderer
             }
             ctx.DrawGeometry(brush, pen: null, geom);
         }
+    }
+
+    // Catalog hit → authentic m_color; miss → deterministic hash so the
+    // unknown block still gets a stable, distinct color.
+    private static Color ResolveBaseColor(VoxelTypeCatalog? catalog, byte highByte)
+    {
+        if (catalog is not null)
+        {
+            var def = catalog.Lookup(highByte);
+            if (def is not null) return Color.FromRgb(def.R, def.G, def.B);
+        }
+        return HashToColor(highByte);
     }
 
     private static Color HashToColor(uint blockId)

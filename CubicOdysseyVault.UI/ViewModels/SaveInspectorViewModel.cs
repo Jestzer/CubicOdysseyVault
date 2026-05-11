@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CubicOdysseyVault.Core.SaveContent;
 using CubicOdysseyVault.Core.Saves;
+using CubicOdysseyVault.Core.Voxels;
 
 namespace CubicOdysseyVault.UI.ViewModels;
 
@@ -23,10 +24,11 @@ public partial class SaveInspectorViewModel : ViewModelBase
 
     public Action? CloseRequested { get; set; }
 
-    public SaveInspectorViewModel(SaveSlot slot, SaveSummary summary, string? title = null)
+    public SaveInspectorViewModel(SaveSlot slot, SaveSummary summary, string? title = null,
+        VoxelTypeCatalog? voxelCatalog = null)
     {
         Slot = slot;
-        Summary = new SaveSummaryViewModel(summary);
+        Summary = new SaveSummaryViewModel(summary, voxelCatalog);
         Title = title ?? $"Live · Slot {slot.SlotName} · acct {slot.AccountFolderName}";
         foreach (var f in slot.Files.OrderBy(f => f.FileName, StringComparer.OrdinalIgnoreCase))
             Files.Add(new SaveFileViewModel(f.FullPath, f.SizeBytes));

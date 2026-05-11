@@ -112,14 +112,51 @@
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
                                IsVisible="{Binding !HasSelectedChunk}" />
-                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                    <ScrollViewer x:Name="RenderScroll"
+                                  HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Auto"
                                   IsVisible="{Binding HasSelectedChunk}">
+                        <!-- Stretch=None at zoom > 1 so each render-pixel maps
+                             to one screen pixel and the user actually sees
+                             the textured detail. At zoom 1 we still want the
+                             bitmap to fit the pane visually, so we do that
+                             by sizing the underlying bitmap appropriately
+                             rather than stretching here. -->
                         <Image Source="{Binding SelectedChunk.LargeBitmap}"
-                               Stretch="Uniform"
+                               Stretch="None"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"/>
                     </ScrollViewer>
+
+                    <!-- Zoom overlay (top-right of the render pane) -->
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="4"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Margin="0,8,8,0"
+                                IsVisible="{Binding HasSelectedChunk}">
+                        <Button Content="−"
+                                Width="28" Height="28"
+                                Padding="0"
+                                Command="{Binding ZoomOutCommand}"
+                                IsEnabled="{Binding CanZoomOut}"
+                                ToolTip.Tip="Zoom out (or scroll wheel)"/>
+                        <Border Background="#80000000"
+                                CornerRadius="3"
+                                Padding="8,4"
+                                VerticalAlignment="Center">
+                            <TextBlock Text="{Binding ZoomLabel}"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       FontFamily="Consolas,monospace"
+                                       FontSize="12"/>
+                        </Border>
+                        <Button Content="+"
+                                Width="28" Height="28"
+                                Padding="0"
+                                Command="{Binding ZoomInCommand}"
+                                IsEnabled="{Binding CanZoomIn}"
+                                ToolTip.Tip="Zoom in (textures appear at higher zoom)"/>
+                    </StackPanel>
                 </Grid>
             </Border>
 

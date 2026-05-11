@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using CubicOdysseyVault.Core.SaveContent;
 using CubicOdysseyVault.Core.Saves;
 using CubicOdysseyVault.Core.Snapshots;
+using CubicOdysseyVault.Core.Voxels;
 using CubicOdysseyVault.UI.Services;
 using CubicOdysseyVault.UI.ViewModels;
 
@@ -73,14 +74,14 @@ public partial class MainWindow : Window
         return vm.Confirmed;
     }
 
-    private async Task ShowSaveInspectorDialogAsync(SaveSlot slot, SaveSummary summary, string? title)
+    private async Task ShowSaveInspectorDialogAsync(SaveSlot slot, SaveSummary summary, string? title, VoxelTypeCatalog? voxelCatalog)
     {
-        var vm = new SaveInspectorViewModel(slot, summary, title);
+        var vm = new SaveInspectorViewModel(slot, summary, title, voxelCatalog);
         var dialog = new SaveInspectorDialog { DataContext = vm };
         await dialog.ShowDialog(this);
     }
 
-    private async Task ShowMapViewerDialogAsync(SaveSlot slot)
+    private async Task ShowMapViewerDialogAsync(SaveSlot slot, VoxelTypeCatalog? catalog)
     {
         var vw3Paths = slot.Files
             .Where(f => f.FileName.EndsWith(".vw3", StringComparison.OrdinalIgnoreCase))
@@ -88,7 +89,8 @@ public partial class MainWindow : Window
             .ToList();
         var vm = new MapViewerViewModel(
             vw3Paths,
-            $"World map · Slot {slot.SlotName} · acct {slot.AccountFolderName}");
+            $"World map · Slot {slot.SlotName} · acct {slot.AccountFolderName}",
+            catalog);
         var dialog = new MapViewerDialog { DataContext = vm };
         await dialog.ShowDialog(this);
     }

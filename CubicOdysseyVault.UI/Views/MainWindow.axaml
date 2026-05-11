@@ -260,7 +260,17 @@
                                    Text="No live save folder for this slot on this machine. You can inspect snapshots below; restoring will create the target folder."/>
                     </StackPanel>
 
-                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource SpaceSm}">
+                    <!-- WrapPanel so the third button drops to a new row when the
+                         400px panel can't fit all three side-by-side. The per-
+                         button margin replaces StackPanel's Spacing (WrapPanel
+                         in Avalonia 11 has no Spacing equivalent) and provides
+                         consistent spacing on both axes when items wrap. -->
+                    <WrapPanel Orientation="Horizontal">
+                        <WrapPanel.Styles>
+                            <Style Selector="Button">
+                                <Setter Property="Margin" Value="0,0,8,8"/>
+                            </Style>
+                        </WrapPanel.Styles>
                         <Button Content="Back up now"
                                 Classes="primary"
                                 Command="{Binding BackUpNowCommand}"
@@ -273,7 +283,7 @@
                                 Classes="secondary"
                                 Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ViewSelectedSlotMapCommand}"
                                 IsVisible="{Binding HasWorldChunks}"/>
-                    </StackPanel>
+                    </WrapPanel>
                     <TextBlock Text="{Binding BackupStatus}"
                                Classes="body-sm"
                                TextWrapping="Wrap"

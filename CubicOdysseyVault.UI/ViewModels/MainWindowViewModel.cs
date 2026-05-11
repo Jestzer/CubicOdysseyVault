@@ -9,6 +9,7 @@ using CubicOdysseyVault.Core.SaveContent;
 using CubicOdysseyVault.Core.Saves;
 using CubicOdysseyVault.Core.Snapshots;
 using CubicOdysseyVault.Core.Steam;
+using CubicOdysseyVault.Core.Voxels;
 using CubicOdysseyVault.Core.Watching;
 using CubicOdysseyVault.UI.Services;
 
@@ -42,9 +43,10 @@ public partial class MainWindowViewModel : ViewModelBase
     public Func<RestoreConfirmViewModel, Task<bool>>? ShowRestoreConfirmDialog { get; set; }
     public Func<string, string?, Task<string?>>? ShowTagEditDialog { get; set; }
     public Func<Snapshot, Task<bool>>? ShowDeleteConfirmDialog { get; set; }
-    public Func<SaveSlot, SaveSummary, string?, Task>? ShowSaveInspectorDialog { get; set; }
-    public Func<SaveSlot, Task>? ShowMapViewerDialog { get; set; }
+    public Func<SaveSlot, SaveSummary, string?, VoxelTypeCatalog?, Task>? ShowSaveInspectorDialog { get; set; }
+    public Func<SaveSlot, VoxelTypeCatalog?, Task>? ShowMapViewerDialog { get; set; }
     private ItemCatalog? _itemCatalog;
+    private VoxelTypeCatalog? _voxelCatalog;
     public Action<string>? OpenBackupFolderRequested { get; set; }
 
     public MainWindowViewModel()
@@ -119,21 +121,23 @@ public partial class MainWindowViewModel : ViewModelBase
         if (SelectedSlot == null || ShowSaveInspectorDialog == null) return;
         StatusMessage = "Loading save summary...";
         var slot = SelectedSlot.Slot;
-        var (catalog, summary) = await Task.Run(() =>
+        var (catalog, summary, voxelCatalog) = await Task.Run(() =>
         {
             var c = EnsureCatalog();
             var s = SaveSummaryBuilder.Build(slot, c);
-            return (c, s);
+            var vc = EnsureVoxelCatalog();
+            return (c, s, vc);
         });
         StatusMessage = CatalogStatus(catalog);
-        await ShowSaveInspectorDialog(slot, summary, null);
+        await ShowSaveInspectorDialog(slot, summary, null, voxelCatalog);
     }
 
     [RelayCommand]
     private async Task ViewSelectedSlotMap()
     {
         if (SelectedSlot == null || ShowMapViewerDialog == null) return;
-        await ShowMapViewerDialog(SelectedSlot.Slot);
+        var catalog = await Task.Run(EnsureVoxelCatalog);
+        await ShowMapViewerDialog(SelectedSlot.Slot, catalog);
     }
 
     [RelayCommand]
@@ -143,15 +147,16 @@ public partial class MainWindowViewModel : ViewModelBase
         StatusMessage = "Loading save summary...";
         var account = SelectedAccount.Account;
         var slot = SynthesiseAccountAsSlot(account.AccountFolderPath, account.SteamId32, account.Source);
-        var (catalog, summary) = await Task.Run(() =>
+        var (catalog, summary, voxelCatalog) = await Task.Run(() =>
         {
             var c = EnsureCatalog();
             var s = SaveSummaryBuilder.Build(slot, c);
-            return (c, s);
+            var vc = EnsureVoxelCatalog();
+            return (c, s, vc);
         });
         StatusMessage = CatalogStatus(catalog);
         var title = $"Live · Account-level · ({account.SteamId32})";
-        await ShowSaveInspectorDialog(slot, summary, title);
+        await ShowSaveInspectorDialog(slot, summary, title, voxelCatalog);
     }
 
     private async Task InspectSlotSnapshotAsync(SaveSlot slot, Snapshot snapshot)
@@ -165,15 +170,16 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
         var synthSlot = SynthesiseSnapshotAsSlot(snapshotFolder, slot.SteamId32, slot.AccountFolderName, slot.SlotName, slot.Source);
-        var (catalog, summary) = await Task.Run(() =>
+        var (catalog, summary, voxelCatalog) = await Task.Run(() =>
         {
             var c = EnsureCatalog();
             var s = SaveSummaryBuilder.Build(synthSlot, c);
-            return (c, s);
+            var vc = EnsureVoxelCatalog();
+            return (c, s, vc);
         });
         StatusMessage = CatalogStatus(catalog);
         var title = $"Backup · Slot {slot.SlotName} · acct {slot.AccountFolderName} · {snapshot.CapturedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
-        await ShowSaveInspectorDialog(synthSlot, summary, title);
+        await ShowSaveInspectorDialog(synthSlot, summary, title, voxelCatalog);
     }
 
     private async Task InspectAccountSnapshotAsync(SaveAccount account, Snapshot snapshot)
@@ -187,15 +193,16 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
         var synthSlot = SynthesiseSnapshotAsSlot(snapshotFolder, account.SteamId32, accountFolderName: "", slotName: "_account", account.Source);
-        var (catalog, summary) = await Task.Run(() =>
+        var (catalog, summary, voxelCatalog) = await Task.Run(() =>
         {
             var c = EnsureCatalog();
             var s = SaveSummaryBuilder.Build(synthSlot, c);
-            return (c, s);
+            var vc = EnsureVoxelCatalog();
+            return (c, s, vc);
         });
         StatusMessage = CatalogStatus(catalog);
         var title = $"Backup · Account-level · {snapshot.CapturedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
-        await ShowSaveInspectorDialog(synthSlot, summary, title);
+        await ShowSaveInspectorDialog(synthSlot, summary, title, voxelCatalog);
     }
 
     private string CatalogStatus(ItemCatalog catalog) => catalog.IsEmpty
@@ -263,11 +270,33 @@ public partial class MainWindowViewModel : ViewModelBase
             }
         }
 
-        var roots = SteamLocator.Locate();
-        var candidates = roots.Select(r =>
-            Path.Combine(r.CanonicalPath, Constants.SteamCommonRelative, Constants.CubicOdysseyInstallFolderName));
-        _itemCatalog = ItemCatalog.AutoDiscover(candidates);
+        _itemCatalog = ItemCatalog.AutoDiscover(GameInstallCandidates());
         return _itemCatalog;
+    }
+
+    private VoxelTypeCatalog EnsureVoxelCatalog()
+    {
+        if (_voxelCatalog != null) return _voxelCatalog;
+
+        if (!string.IsNullOrEmpty(_settings.GameInstallPath))
+        {
+            var fromSettings = VoxelTypeCatalog.LoadFrom(_settings.GameInstallPath);
+            if (!fromSettings.IsEmpty)
+            {
+                _voxelCatalog = fromSettings;
+                return _voxelCatalog;
+            }
+        }
+
+        _voxelCatalog = VoxelTypeCatalog.AutoDiscover(GameInstallCandidates());
+        return _voxelCatalog;
+    }
+
+    private static IEnumerable<string> GameInstallCandidates()
+    {
+        var roots = SteamLocator.Locate();
+        return roots.Select(r =>
+            Path.Combine(r.CanonicalPath, Constants.SteamCommonRelative, Constants.CubicOdysseyInstallFolderName));
     }
 
     [RelayCommand]
@@ -504,9 +533,14 @@ public partial class MainWindowViewModel : ViewModelBase
         _settings = updated;
         AppSettingsService.Save(_settings);
         _coordinator.Update(EffectiveBackupRoot(_settings), BuildRetention(_settings));
-        // Drop the cached catalog so the next inspector open reloads from the
-        // new path (covers both override-set and override-cleared cases).
-        if (gameInstallChanged) _itemCatalog = null;
+        // Drop the cached catalogs so the next inspector / map open reloads
+        // from the new path (covers both override-set and override-cleared
+        // cases).
+        if (gameInstallChanged)
+        {
+            _itemCatalog = null;
+            _voxelCatalog = null;
+        }
         IsWatcherEnabled = _settings.WatcherEnabled;
         WatcherDebounceSeconds = _settings.WatcherDebounceSeconds;
     }
